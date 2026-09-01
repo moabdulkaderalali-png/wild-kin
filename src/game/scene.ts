@@ -53,17 +53,17 @@ export function drawTerrain(
         ctx.fillRect(wx + 4, wy + 10, TILE * 0.6, 2);
       }
       if (!s.water) {
-        // weiche organische Textur statt harter Kacheln
-        const t = valueNoise(wx * 0.09, wy * 0.09, 5);
-        if (t > 0.62) {
-          ctx.fillStyle = "rgba(0,0,0,0.05)";
+        // sparsame organische Details (keine Rasterstruktur)
+        const t = valueNoise(wx * 0.31 + 11, wy * 0.29 - 7, 5);
+        if (t > 0.86) {
+          ctx.fillStyle = "rgba(0,0,0,0.07)";
           ctx.beginPath();
-          ctx.ellipse(wx + 16, wy + 16, 18, 12, t * 3, 0, Math.PI * 2);
+          ctx.ellipse(wx + t * 30, wy + (1 - t) * 30, 9 + t * 7, 5 + t * 4, t * 6, 0, Math.PI * 2);
           ctx.fill();
-        } else if (t < 0.34) {
-          ctx.fillStyle = "rgba(255,255,255,0.045)";
+        } else if (t < 0.13) {
+          ctx.fillStyle = "rgba(255,255,255,0.05)";
           ctx.beginPath();
-          ctx.ellipse(wx + 14, wy + 18, 16, 11, t * 5, 0, Math.PI * 2);
+          ctx.ellipse(wx + t * 90, wy + 20 - t * 40, 8, 5, t * 9, 0, Math.PI * 2);
           ctx.fill();
         }
       }
