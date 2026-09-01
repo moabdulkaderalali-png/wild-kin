@@ -53,17 +53,34 @@ export function drawTerrain(
         ctx.fillRect(wx + 4, wy + 10, TILE * 0.6, 2);
       }
       if (!s.water) {
-        // sparsame organische Details (keine Rasterstruktur)
-        const t = valueNoise(wx * 0.31 + 11, wy * 0.29 - 7, 5);
-        if (t > 0.86) {
-          ctx.fillStyle = "rgba(0,0,0,0.07)";
+        // organische Flecken, bewusst vom Kachelraster entkoppelt
+        const t = valueNoise(wx * 0.013 + 11, wy * 0.013 - 7, 5);
+        const u = valueNoise(wx * 0.017 - 31, wy * 0.019 + 5, 23);
+        if (t > 0.72) {
+          ctx.fillStyle = "rgba(0,0,0,0.05)";
           ctx.beginPath();
-          ctx.ellipse(wx + t * 30, wy + (1 - t) * 30, 9 + t * 7, 5 + t * 4, t * 6, 0, Math.PI * 2);
+          ctx.ellipse(
+            wx + (u - 0.5) * 120,
+            wy + (t - 0.5) * 120,
+            26 + u * 24,
+            16 + t * 14,
+            u * 6,
+            0,
+            Math.PI * 2,
+          );
           ctx.fill();
-        } else if (t < 0.13) {
-          ctx.fillStyle = "rgba(255,255,255,0.05)";
+        } else if (t < 0.3) {
+          ctx.fillStyle = "rgba(255,255,255,0.04)";
           ctx.beginPath();
-          ctx.ellipse(wx + t * 90, wy + 20 - t * 40, 8, 5, t * 9, 0, Math.PI * 2);
+          ctx.ellipse(
+            wx + (t - 0.5) * 130,
+            wy + (u - 0.5) * 130,
+            24 + t * 22,
+            15 + u * 12,
+            t * 7,
+            0,
+            Math.PI * 2,
+          );
           ctx.fill();
         }
       }
