@@ -10,8 +10,8 @@ const COLORS: Record<Biome, [string, string]> = {
   lake: ["#1b6480", "#2a7f9c"],
   swamp: ["#4a5936", "#5d6b41"],
   desert: ["#dcc084", "#cbab6c"],
-  savanna: ["#b7a05a", "#a89150"],
-  grass: ["#6d9145", "#79a04d"],
+  savanna: ["#bda85f", "#ae9852"],
+  grass: ["#6f9a44", "#7cab4e"],
   forest: ["#3f6b34", "#4c7a3c"],
   jungle: ["#2e5c2c", "#3a6f33"],
   snow: ["#e8eef2", "#dbe5ec"],
@@ -38,7 +38,7 @@ export function drawTerrain(
       const wy = y0 + j * TILE;
       const s = sample(wx + TILE / 2, wy + TILE / 2);
       const pair = COLORS[s.biome];
-      const n = valueNoise(wx * 0.02, wy * 0.02, 17);
+      const n = valueNoise(wx * 0.035, wy * 0.035, 17);
       let color = n > 0.5 ? pair[1] : pair[0];
       if (s.water) {
         const wave =
@@ -52,10 +52,19 @@ export function drawTerrain(
         ctx.fillStyle = "rgba(255,255,255,0.16)";
         ctx.fillRect(wx + 4, wy + 10, TILE * 0.6, 2);
       }
-      if (!s.water && (s.biome === "grass" || s.biome === "savanna" || s.biome === "forest")) {
-        if (valueNoise(wx * 0.11, wy * 0.11, 5) > 0.72) {
-          ctx.fillStyle = "rgba(0,0,0,0.06)";
-          ctx.fillRect(wx + 6, wy + 6, 12, 8);
+      if (!s.water) {
+        // weiche organische Textur statt harter Kacheln
+        const t = valueNoise(wx * 0.09, wy * 0.09, 5);
+        if (t > 0.62) {
+          ctx.fillStyle = "rgba(0,0,0,0.05)";
+          ctx.beginPath();
+          ctx.ellipse(wx + 16, wy + 16, 18, 12, t * 3, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (t < 0.34) {
+          ctx.fillStyle = "rgba(255,255,255,0.045)";
+          ctx.beginPath();
+          ctx.ellipse(wx + 14, wy + 18, 16, 11, t * 5, 0, Math.PI * 2);
+          ctx.fill();
         }
       }
     }

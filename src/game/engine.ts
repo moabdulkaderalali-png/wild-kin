@@ -137,7 +137,7 @@ export class Game {
   private ctx: CanvasRenderingContext2D;
   private raf = 0;
   private last = 0;
-  private time = 0;
+  private time = 90; // Start am Vormittag
   private tick = 0;
   private dpr = 1;
   private zoom = 1;
