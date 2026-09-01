@@ -38,7 +38,7 @@ export function drawTerrain(
       const wy = y0 + j * TILE;
       const s = sample(wx + TILE / 2, wy + TILE / 2);
       const pair = COLORS[s.biome];
-      const n = valueNoise(wx * 0.035, wy * 0.035, 17);
+      const n = valueNoise(wx * 0.006, wy * 0.006, 17);
       let color = n > 0.5 ? pair[1] : pair[0];
       if (s.water) {
         const wave =
