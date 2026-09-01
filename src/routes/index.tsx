@@ -1,24 +1,34 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { GameShell } from "@/components/game/GameShell";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "Wildlands – Realistisches 2D-Tier-Survival für Handy" },
+      {
+        name: "description",
+        content:
+          "Spiele als Frosch, Maus, Wolf oder Gepard in einer riesigen lebendigen Öko-Welt: Sahara, Regenwald, Antarktis, Flüsse und Ozeane. Jagen, fressen, überleben, Tiere freischalten.",
+      },
+      { property: "og:title", content: "Wildlands – 2D-Tier-Survival" },
+      {
+        property: "og:description",
+        content:
+          "Riesige Open World mit realistischer Tier-KI, Biomen, Wetter, Tag-Nacht-Zyklus und 13 spielbaren Tieren.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <main className="h-[100dvh] w-full overflow-hidden bg-background">
+      <h1 className="sr-only">Wildlands – realistisches 2D-Tier-Survival-Spiel</h1>
+      <GameShell />
+    </main>
   );
 }
