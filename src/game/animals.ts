@@ -1,0 +1,826 @@
+// Tier-Definitionen: Werte exakt nach Spezifikation.
+// Geschwindigkeit: km/h -> Weltpixel/s (1 km/h = 2.2 px/s)
+export const KMH = 2.2;
+
+export type Diet = "herbivore" | "carnivore" | "omnivore" | "insectivore";
+
+export type AttackDef = {
+  id: string;
+  name: string;
+  damage: number;
+  cooldown: number; // s
+  range: number; // px vom Körperzentrum
+  arc: number; // rad Halbwinkel
+  rear?: boolean; // trifft hinter dem Tier
+  dot?: { dps: number; duration: number; label: string };
+  anim: "bite" | "paw" | "horn" | "kick" | "tail";
+  windup: number; // s bis Trefferfenster
+};
+
+export type SpecialKind =
+  | "tongue"
+  | "invisible"
+  | "leap"
+  | "curl"
+  | "boost"
+  | "frenzy"
+  | "ambush"
+  | "spin";
+
+export type SpecialDef = {
+  name: string;
+  kind: SpecialKind;
+  cooldown: number;
+  duration: number;
+  power?: number;
+  desc: string;
+};
+
+export type BodyPlan = {
+  len: number;
+  wid: number;
+  color: string;
+  color2: string;
+  belly: string;
+  pattern: "none" | "spots" | "stripes" | "rosettes" | "patch" | "bands";
+  headR: number;
+  snout: number;
+  ears: "point" | "round" | "long" | "tiny" | "none";
+  tail: "bushy" | "thin" | "short" | "flat" | "none" | "tuft";
+  tailLen: number;
+  legLen: number;
+  form: "quad" | "snake" | "frog";
+  spines?: boolean;
+  horns?: boolean;
+  webbed?: boolean;
+};
+
+export type AnimalDef = {
+  id: string;
+  name: string;
+  price: number;
+  hp: number;
+  speed: number; // km/h Land
+  swim?: number; // km/h Wasser
+  sprintFactor: number;
+  stamina: number; // s Sprintdauer
+  attacks: AttackDef[];
+  special: SpecialDef;
+  biomes: string[];
+  diet: Diet;
+  scale: number;
+  climber?: boolean;
+  aquatic?: boolean;
+  bounty: number; // Coins beim Besiegen
+  body: BodyPlan;
+  voice: { freq: number; type: OscillatorType; dur: number; wobble: number };
+  note: string;
+};
+
+const bite = (
+  damage: number,
+  range: number,
+  extra: Partial<AttackDef> = {},
+): AttackDef => ({
+  id: "bite",
+  name: "Biss",
+  damage,
+  cooldown: 0.5,
+  range,
+  arc: 0.7,
+  anim: "bite",
+  windup: 0.14,
+  ...extra,
+});
+
+export const ANIMALS: AnimalDef[] = [
+  {
+    id: "frog",
+    name: "Frosch",
+    price: 0,
+    hp: 40,
+    speed: 5,
+    swim: 10,
+    sprintFactor: 1.6,
+    stamina: 4,
+    attacks: [bite(2, 20)],
+    special: {
+      name: "Zunge",
+      kind: "tongue",
+      cooldown: 10,
+      duration: 0.6,
+      power: 150,
+      desc: "Schnellt weit nach vorne und zieht Insekten an.",
+    },
+    biomes: ["swamp", "river", "lake", "jungle"],
+    diet: "insectivore",
+    scale: 0.6,
+    aquatic: true,
+    bounty: 10,
+    body: {
+      len: 26,
+      wid: 22,
+      color: "#4a7a35",
+      color2: "#6ea24a",
+      belly: "#d3d79a",
+      pattern: "spots",
+      headR: 9,
+      snout: 3,
+      ears: "none",
+      tail: "none",
+      tailLen: 0,
+      legLen: 11,
+      form: "frog",
+      webbed: true,
+    },
+    voice: { freq: 180, type: "sawtooth", dur: 0.22, wobble: 40 },
+    note: "Klein und langsam an Land, flink im Wasser.",
+  },
+  {
+    id: "mouse",
+    name: "Maus",
+    price: 0,
+    hp: 30,
+    speed: 40,
+    sprintFactor: 1.25,
+    stamina: 5,
+    attacks: [bite(2, 14)],
+    special: {
+      name: "Tarnung",
+      kind: "invisible",
+      cooldown: 10,
+      duration: 10,
+      desc: "10 s unsichtbar – NPCs verlieren dich aus den Augen.",
+    },
+    biomes: ["forest", "grass", "savanna"],
+    diet: "herbivore",
+    scale: 0.45,
+    bounty: 10,
+    body: {
+      len: 22,
+      wid: 13,
+      color: "#8b7a68",
+      color2: "#a2907c",
+      belly: "#e0d6c8",
+      pattern: "none",
+      headR: 7,
+      snout: 5,
+      ears: "round",
+      tail: "thin",
+      tailLen: 20,
+      legLen: 6,
+      form: "quad",
+    },
+    voice: { freq: 1400, type: "square", dur: 0.07, wobble: 300 },
+    note: "Extrem wendig, versteckt sich überall.",
+  },
+  {
+    id: "cat",
+    name: "Hauskatze",
+    price: 15,
+    hp: 70,
+    speed: 50,
+    sprintFactor: 1.3,
+    stamina: 6,
+    attacks: [
+      bite(5, 22),
+      {
+        id: "paw",
+        name: "Pfotenschlag",
+        damage: 4,
+        cooldown: 0.5,
+        range: 26,
+        arc: 0.9,
+        anim: "paw",
+        windup: 0.1,
+      },
+    ],
+    special: {
+      name: "Sprung",
+      kind: "leap",
+      cooldown: 10,
+      duration: 0.45,
+      power: 260,
+      desc: "Weiter, schneller Satz nach vorne.",
+    },
+    biomes: ["grass", "forest", "savanna"],
+    diet: "carnivore",
+    scale: 0.8,
+    climber: true,
+    bounty: 25,
+    body: {
+      len: 40,
+      wid: 20,
+      color: "#8a6a4a",
+      color2: "#5f4530",
+      belly: "#efe3d2",
+      pattern: "stripes",
+      headR: 11,
+      snout: 4,
+      ears: "point",
+      tail: "thin",
+      tailLen: 32,
+      legLen: 12,
+      form: "quad",
+    },
+    voice: { freq: 620, type: "sawtooth", dur: 0.35, wobble: 180 },
+    note: "Klettert auf Bäume – dort sicher vor Bodentieren.",
+  },
+  {
+    id: "hedgehog",
+    name: "Igel",
+    price: 26,
+    hp: 210,
+    speed: 15,
+    sprintFactor: 1.2,
+    stamina: 4,
+    attacks: [bite(3, 16)],
+    special: {
+      name: "Einrollen",
+      kind: "curl",
+      cooldown: 10,
+      duration: 10,
+      power: 8,
+      desc: "10 s Kugel: Angreifer nehmen 8 Schaden pro Biss.",
+    },
+    biomes: ["forest", "grass"],
+    diet: "insectivore",
+    scale: 0.6,
+    bounty: 30,
+    body: {
+      len: 28,
+      wid: 24,
+      color: "#5d4f3f",
+      color2: "#3b3129",
+      belly: "#c9b79c",
+      pattern: "none",
+      headR: 8,
+      snout: 6,
+      ears: "tiny",
+      tail: "short",
+      tailLen: 5,
+      legLen: 7,
+      form: "quad",
+      spines: true,
+    },
+    voice: { freq: 330, type: "triangle", dur: 0.18, wobble: 90 },
+    note: "Defensiv, extrem zäh.",
+  },
+  {
+    id: "fox",
+    name: "Fuchs",
+    price: 40,
+    hp: 160,
+    speed: 55,
+    sprintFactor: 1.3,
+    stamina: 8,
+    attacks: [bite(7, 26)],
+    special: {
+      name: "Satz",
+      kind: "leap",
+      cooldown: 10,
+      duration: 0.45,
+      power: 300,
+      desc: "Schneller weiter Sprung nach vorne.",
+    },
+    biomes: ["forest", "grass", "snow"],
+    diet: "carnivore",
+    scale: 0.9,
+    bounty: 45,
+    body: {
+      len: 46,
+      wid: 20,
+      color: "#c1662f",
+      color2: "#8d4620",
+      belly: "#f0e6dc",
+      pattern: "none",
+      headR: 12,
+      snout: 8,
+      ears: "point",
+      tail: "bushy",
+      tailLen: 40,
+      legLen: 14,
+      form: "quad",
+    },
+    voice: { freq: 780, type: "sawtooth", dur: 0.25, wobble: 260 },
+    note: "Schnell und wendig.",
+  },
+  {
+    id: "otter",
+    name: "Otter",
+    price: 70,
+    hp: 200,
+    speed: 25,
+    swim: 20,
+    sprintFactor: 1.25,
+    stamina: 8,
+    attacks: [
+      bite(12, 24),
+      {
+        id: "paw",
+        name: "Pfotenangriff",
+        damage: 5,
+        cooldown: 0.5,
+        range: 26,
+        arc: 0.9,
+        anim: "paw",
+        windup: 0.1,
+      },
+    ],
+    special: {
+      name: "Tauchstoß",
+      kind: "boost",
+      cooldown: 10,
+      duration: 5,
+      power: 1.8,
+      desc: "5 s deutlich schneller – besonders im Wasser.",
+    },
+    biomes: ["river", "lake", "forest"],
+    diet: "carnivore",
+    scale: 0.85,
+    aquatic: true,
+    bounty: 70,
+    body: {
+      len: 48,
+      wid: 20,
+      color: "#5b4030",
+      color2: "#3d2b1f",
+      belly: "#b9a48c",
+      pattern: "none",
+      headR: 11,
+      snout: 6,
+      ears: "tiny",
+      tail: "flat",
+      tailLen: 30,
+      legLen: 9,
+      form: "quad",
+      webbed: true,
+    },
+    voice: { freq: 900, type: "square", dur: 0.12, wobble: 200 },
+    note: "Im Wasser zu Hause.",
+  },
+  {
+    id: "goat",
+    name: "Ziege",
+    price: 80,
+    hp: 300,
+    speed: 40,
+    sprintFactor: 1.25,
+    stamina: 7,
+    attacks: [
+      {
+        id: "horn",
+        name: "Hornstoß",
+        damage: 20,
+        cooldown: 0.5,
+        range: 32,
+        arc: 0.5,
+        anim: "horn",
+        windup: 0.22,
+      },
+      {
+        id: "kick",
+        name: "Hinterhuftritt",
+        damage: 13,
+        cooldown: 0.5,
+        range: 30,
+        arc: 0.7,
+        rear: true,
+        anim: "kick",
+        windup: 0.16,
+      },
+    ],
+    special: {
+      name: "Sturmangriff",
+      kind: "boost",
+      cooldown: 10,
+      duration: 3,
+      power: 2,
+      desc: "Kurzer Ansturm mit gesenkten Hörnern.",
+    },
+    biomes: ["mountain", "grass", "savanna"],
+    diet: "herbivore",
+    scale: 1,
+    climber: true,
+    bounty: 90,
+    body: {
+      len: 52,
+      wid: 24,
+      color: "#cfc3ad",
+      color2: "#9a8b73",
+      belly: "#eee6d8",
+      pattern: "patch",
+      headR: 12,
+      snout: 8,
+      ears: "long",
+      tail: "short",
+      tailLen: 10,
+      legLen: 18,
+      form: "quad",
+      horns: true,
+    },
+    voice: { freq: 400, type: "sawtooth", dur: 0.5, wobble: 120 },
+    note: "Robust, klettert Felsen.",
+  },
+  {
+    id: "snake",
+    name: "Giftschlange",
+    price: 100,
+    hp: 200,
+    speed: 20,
+    sprintFactor: 1.3,
+    stamina: 5,
+    attacks: [
+      bite(15, 30, {
+        dot: { dps: 4, duration: 15, label: "Gift" },
+        windup: 0.12,
+      }),
+    ],
+    special: {
+      name: "Blitzstoß",
+      kind: "leap",
+      cooldown: 10,
+      duration: 0.3,
+      power: 220,
+      desc: "Körper spannt sich und schnellt nach vorne.",
+    },
+    biomes: ["desert", "savanna", "jungle"],
+    diet: "carnivore",
+    scale: 0.9,
+    bounty: 110,
+    body: {
+      len: 70,
+      wid: 12,
+      color: "#6d7a3c",
+      color2: "#3f4a22",
+      belly: "#d8cf9a",
+      pattern: "bands",
+      headR: 9,
+      snout: 5,
+      ears: "none",
+      tail: "none",
+      tailLen: 0,
+      legLen: 0,
+      form: "snake",
+    },
+    voice: { freq: 2600, type: "sawtooth", dur: 0.5, wobble: 60 },
+    note: "Gift wirkt 15 s und stapelt nicht.",
+  },
+  {
+    id: "wolf",
+    name: "Wolf",
+    price: 130,
+    hp: 250,
+    speed: 60,
+    sprintFactor: 1.3,
+    stamina: 16,
+    attacks: [bite(30, 30)],
+    special: {
+      name: "Jagdheulen",
+      kind: "boost",
+      cooldown: 10,
+      duration: 6,
+      power: 1.5,
+      desc: "Ausdauerschub: 6 s schneller und unermüdlich.",
+    },
+    biomes: ["forest", "snow", "grass"],
+    diet: "carnivore",
+    scale: 1.1,
+    bounty: 140,
+    body: {
+      len: 60,
+      wid: 26,
+      color: "#7b7a76",
+      color2: "#4d4c49",
+      belly: "#d5cfc4",
+      pattern: "patch",
+      headR: 14,
+      snout: 9,
+      ears: "point",
+      tail: "bushy",
+      tailLen: 38,
+      legLen: 20,
+      form: "quad",
+    },
+    voice: { freq: 300, type: "sawtooth", dur: 1.1, wobble: 90 },
+    note: "Ausdauernder Jäger.",
+  },
+  {
+    id: "hyena",
+    name: "Hyäne",
+    price: 200,
+    hp: 350,
+    speed: 65,
+    sprintFactor: 1.3,
+    stamina: 15,
+    attacks: [bite(60, 32)],
+    special: {
+      name: "Raserei",
+      kind: "frenzy",
+      cooldown: 10,
+      duration: 5,
+      power: 1.6,
+      desc: "5 s schnellere Angriffe und mehr Tempo.",
+    },
+    biomes: ["desert", "savanna"],
+    diet: "carnivore",
+    scale: 1.15,
+    bounty: 200,
+    body: {
+      len: 62,
+      wid: 28,
+      color: "#a08a63",
+      color2: "#5f503a",
+      belly: "#cdbb99",
+      pattern: "spots",
+      headR: 15,
+      snout: 9,
+      ears: "round",
+      tail: "tuft",
+      tailLen: 24,
+      legLen: 20,
+      form: "quad",
+    },
+    voice: { freq: 520, type: "square", dur: 0.5, wobble: 400 },
+    note: "Brutale Beißkraft.",
+  },
+  {
+    id: "komodo",
+    name: "Komodowaran",
+    price: 300,
+    hp: 400,
+    speed: 30,
+    sprintFactor: 1.2,
+    stamina: 6,
+    attacks: [
+      bite(25, 32, {
+        dot: { dps: 10, duration: 10, label: "Blutung" },
+      }),
+      {
+        id: "tail",
+        name: "Schwanzschlag",
+        damage: 40,
+        cooldown: 0.5,
+        range: 40,
+        arc: 0.9,
+        rear: true,
+        anim: "tail",
+        windup: 0.2,
+      },
+    ],
+    special: {
+      name: "Schwanzwirbel",
+      kind: "spin",
+      cooldown: 10,
+      duration: 0.8,
+      power: 30,
+      desc: "Rundumschlag mit dem Schwanz.",
+    },
+    biomes: ["jungle", "savanna"],
+    diet: "carnivore",
+    scale: 1.2,
+    bounty: 260,
+    body: {
+      len: 70,
+      wid: 26,
+      color: "#5c5a4e",
+      color2: "#3a3831",
+      belly: "#8f8b76",
+      pattern: "bands",
+      headR: 13,
+      snout: 12,
+      ears: "none",
+      tail: "thin",
+      tailLen: 52,
+      legLen: 11,
+      form: "quad",
+    },
+    voice: { freq: 1800, type: "sawtooth", dur: 0.7, wobble: 40 },
+    note: "Schwerfällig, aber tödlich.",
+  },
+  {
+    id: "leopard",
+    name: "Leopard",
+    price: 400,
+    hp: 250,
+    speed: 60,
+    sprintFactor: 1.35,
+    stamina: 10,
+    attacks: [
+      bite(35, 30),
+      {
+        id: "paw",
+        name: "Pfotenschlag",
+        damage: 20,
+        cooldown: 0.5,
+        range: 32,
+        arc: 0.9,
+        anim: "paw",
+        windup: 0.1,
+      },
+    ],
+    special: {
+      name: "Hinterhalt",
+      kind: "ambush",
+      cooldown: 10,
+      duration: 6,
+      power: 2,
+      desc: "Angepirscht: unsichtbar, der nächste Treffer verdoppelt Schaden.",
+    },
+    biomes: ["jungle", "savanna", "forest"],
+    diet: "carnivore",
+    scale: 1.2,
+    climber: true,
+    bounty: 300,
+    body: {
+      len: 66,
+      wid: 28,
+      color: "#c9a253",
+      color2: "#7a5c26",
+      belly: "#f0e7d3",
+      pattern: "rosettes",
+      headR: 15,
+      snout: 6,
+      ears: "round",
+      tail: "thin",
+      tailLen: 52,
+      legLen: 20,
+      form: "quad",
+    },
+    voice: { freq: 220, type: "sawtooth", dur: 0.8, wobble: 60 },
+    note: "Klettert und schlägt aus dem Hinterhalt zu.",
+  },
+  {
+    id: "cheetah",
+    name: "Gepard",
+    price: 400,
+    hp: 200,
+    speed: 120,
+    sprintFactor: 1.2,
+    stamina: 5,
+    attacks: [
+      bite(20, 30),
+      {
+        id: "paw",
+        name: "Pfotenschlag",
+        damage: 15,
+        cooldown: 0.5,
+        range: 30,
+        arc: 0.9,
+        anim: "paw",
+        windup: 0.1,
+      },
+    ],
+    special: {
+      name: "Hetzjagd",
+      kind: "boost",
+      cooldown: 10,
+      duration: 3,
+      power: 1.7,
+      desc: "3 s extremer Sprint mit sofortiger Beschleunigung.",
+    },
+    biomes: ["savanna", "grass"],
+    diet: "carnivore",
+    scale: 1.15,
+    bounty: 300,
+    body: {
+      len: 64,
+      wid: 24,
+      color: "#d8b877",
+      color2: "#8a6c33",
+      belly: "#f5efe0",
+      pattern: "spots",
+      headR: 13,
+      snout: 6,
+      ears: "round",
+      tail: "thin",
+      tailLen: 50,
+      legLen: 22,
+      form: "quad",
+    },
+    voice: { freq: 1100, type: "triangle", dur: 0.2, wobble: 500 },
+    note: "Schnellstes Tier der Welt – aber zerbrechlich.",
+  },
+];
+
+export const ANIMAL_BY_ID: Record<string, AnimalDef> = Object.fromEntries(
+  ANIMALS.map((a) => [a.id, a]),
+);
+
+const base = (id: string): AnimalDef =>
+  ANIMALS.find((a) => a.id === id) as AnimalDef;
+
+const MOUSE = base("mouse");
+const GOAT = base("goat");
+
+// Zusätzliche reine NPC-Arten (Beute)
+export const PREY: AnimalDef[] = [
+  {
+    ...MOUSE,
+    id: "rabbit",
+    name: "Hase",
+    hp: 45,
+    speed: 45,
+    bounty: 15,
+    scale: 0.6,
+    price: -1,
+    body: {
+      ...MOUSE.body,
+      len: 28,
+      wid: 16,
+      color: "#9c8b74",
+      ears: "long",
+      tail: "short",
+      tailLen: 8,
+      legLen: 9,
+    },
+  },
+  {
+    ...GOAT,
+    id: "deer",
+    name: "Reh",
+    hp: 180,
+    speed: 55,
+    bounty: 60,
+    price: -1,
+    biomes: ["forest", "grass"],
+    body: {
+      ...GOAT.body,
+      color: "#a2723f",
+      color2: "#6d4a26",
+      pattern: "spots",
+      horns: false,
+      len: 56,
+      legLen: 22,
+    },
+  },
+  {
+    ...GOAT,
+    id: "zebra",
+    name: "Zebra",
+    hp: 320,
+    speed: 55,
+    bounty: 120,
+    price: -1,
+    biomes: ["savanna", "grass"],
+    body: {
+      ...GOAT.body,
+      color: "#efeae2",
+      color2: "#2b2724",
+      pattern: "stripes",
+      horns: false,
+      len: 66,
+      wid: 28,
+      legLen: 24,
+    },
+  },
+  {
+    ...MOUSE,
+    id: "penguin",
+    name: "Pinguin",
+    hp: 90,
+    speed: 12,
+    bounty: 30,
+    price: -1,
+    biomes: ["snow"],
+    body: {
+      ...MOUSE.body,
+      len: 30,
+      wid: 20,
+      color: "#2b2f36",
+      color2: "#14161a",
+      belly: "#f2f4f7",
+      ears: "none",
+      tail: "short",
+      tailLen: 6,
+      legLen: 7,
+    },
+  },
+  {
+    ...GOAT,
+    id: "camel",
+    name: "Kamel",
+    hp: 340,
+    speed: 30,
+    bounty: 110,
+    price: -1,
+    biomes: ["desert"],
+    body: {
+      ...GOAT.body,
+      color: "#c8a468",
+      color2: "#9c7c46",
+      pattern: "none",
+      horns: false,
+      len: 70,
+      wid: 30,
+      legLen: 26,
+    },
+  },
+];
+
+export const ALL_SPECIES: AnimalDef[] = [...ANIMALS, ...PREY];
+
+export function speciesById(id: string): AnimalDef {
+  return ALL_SPECIES.find((a) => a.id === id) as AnimalDef;
+}
+
