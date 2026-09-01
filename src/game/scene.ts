@@ -39,7 +39,7 @@ export function drawTerrain(
       const s = sample(wx + TILE / 2, wy + TILE / 2);
       const pair = COLORS[s.biome];
       const n = valueNoise(wx * 0.006, wy * 0.006, 17);
-      let color = pair[0];
+      let color = n > 0.62 ? pair[1] : pair[0];
       if (s.water) {
         const wave =
           Math.sin(wx * 0.02 + time * 1.4) * 0.5 +
@@ -52,7 +52,7 @@ export function drawTerrain(
         ctx.fillStyle = "rgba(255,255,255,0.16)";
         ctx.fillRect(wx + 4, wy + 10, TILE * 0.6, 2);
       }
-      if (false && !s.water) {
+      if (!s.water) {
         // organische Flecken, bewusst vom Kachelraster entkoppelt
         const t = valueNoise(wx * 0.013 + 11, wy * 0.013 - 7, 5);
         const u = valueNoise(wx * 0.017 - 31, wy * 0.019 + 5, 23);
