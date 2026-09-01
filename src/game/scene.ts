@@ -52,7 +52,7 @@ export function drawTerrain(
         ctx.fillStyle = "rgba(255,255,255,0.16)";
         ctx.fillRect(wx + 4, wy + 10, TILE * 0.6, 2);
       }
-      if (!s.water) {
+      if (false && !s.water) {
         // organische Flecken, bewusst vom Kachelraster entkoppelt
         const t = valueNoise(wx * 0.013 + 11, wy * 0.013 - 7, 5);
         const u = valueNoise(wx * 0.017 - 31, wy * 0.019 + 5, 23);
