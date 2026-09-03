@@ -19,6 +19,11 @@ export type Pose = {
   tongue: number; // 0..1 Zungenausfahrt
   jump: number; // 0..1 Sprunghöhe
   resting: boolean;
+  skeleton?: boolean; // Leiche ist zu Knochen verfallen
+  decay?: number; // 0..1 Verwesungsgrad der Leiche
+  breathe?: number; // Atem-/Idle-Phase
+  rolling?: number; // Todesrolle 0..1
+  ridden?: boolean; // trägt gerade einen Angreifer auf dem Rücken
 };
 
 function shade(hex: string, amt: number): string {
@@ -186,6 +191,30 @@ function drawQuad(ctx: CanvasRenderingContext2D, def: AnimalDef, p: Pose) {
   ctx.quadraticCurveTo(0, -hw * 0.55, hl * 0.7, -hw * 0.3);
   ctx.stroke();
 
+  if (b.plates) {
+    // Panzerschuppen in Reihen
+    ctx.fillStyle = shade(b.color2, 12);
+    for (let row = -1; row <= 1; row++) {
+      for (let i = 0; i < 9; i++) {
+        const px = -hl * 0.85 + (i / 8) * len * 0.85;
+        const py = row * hw * 0.42;
+        ctx.beginPath();
+        ctx.roundRect(px - 2.2, py - 1.8, 4.4, 3.6, 1.2);
+        ctx.fill();
+      }
+    }
+    ctx.fillStyle = shade(b.color2, -18);
+    for (let i = 0; i < 7; i++) {
+      const px = -hl * 0.5 + (i / 6) * len * 0.7;
+      ctx.beginPath();
+      ctx.moveTo(px - 2, 0);
+      ctx.lineTo(px, -3.4);
+      ctx.lineTo(px + 2, 0);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
   if (b.spines) {
     ctx.strokeStyle = shade(b.color2, -10);
     ctx.lineWidth = 1.1;
@@ -256,8 +285,39 @@ function drawQuad(ctx: CanvasRenderingContext2D, def: AnimalDef, p: Pose) {
     });
   }
 
+  // Lange Kiefer (Krokodil)
+  if (b.jaws) {
+    const open = bite * 0.55;
+    ctx.save();
+    ctx.fillStyle = shade(b.color, 4);
+    [-1, 1].forEach((sd) => {
+      ctx.save();
+      ctx.rotate(sd * open);
+      ctx.beginPath();
+      ctx.moveTo(b.headR * 0.2, sd * b.headR * 0.55);
+      ctx.quadraticCurveTo(b.snout * 0.9, sd * b.headR * 0.42, b.snout * 1.15, sd * 1.2);
+      ctx.lineTo(b.snout * 1.15, -sd * 0.4);
+      ctx.quadraticCurveTo(b.snout * 0.7, -sd * 0.5, b.headR * 0.2, -sd * 0.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#f4f0e2";
+      for (let i = 0; i < 7; i++) {
+        const tx = b.headR * 0.5 + (i / 6) * b.snout * 0.6;
+        ctx.beginPath();
+        ctx.moveTo(tx, sd * b.headR * 0.34);
+        ctx.lineTo(tx + 1.4, sd * (b.headR * 0.34 - sd * 0));
+        ctx.lineTo(tx + 0.6, sd * b.headR * 0.1);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.fillStyle = shade(b.color, 4);
+      ctx.restore();
+    });
+    ctx.restore();
+  }
+
   // Schnauze
-  if (b.snout > 0) {
+  if (b.snout > 0 && !b.jaws) {
     ctx.fillStyle = shade(b.color, 8);
     ellipse(ctx, b.headR * 0.65, 0, b.snout * 0.85, b.headR * 0.5);
     ctx.fill();
