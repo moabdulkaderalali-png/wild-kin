@@ -65,6 +65,16 @@ export type Ent = {
   lastSound: number;
   lastStep: number;
   engagedUntil: number;
+  peaceful: boolean; // greift nur an, wenn es selbst angegriffen wurde
+  skeleton: boolean;
+  stamina: number; // 0..1
+  sprinting: boolean;
+  gripId: number | null; // hält dieses Ziel fest (Umschlingen/Todesrolle/Rückensprung)
+  gripUntil: number;
+  gripDps: number;
+  gripMode: "constrict" | "deathroll" | "pounce" | null;
+  heldUntil: number; // wird gerade festgehalten
+  rollUntil: number;
 };
 
 type Critter = {
@@ -74,7 +84,20 @@ type Critter = {
   a: number;
   sp: number;
   seed: number;
+  hp: number;
+  maxHp: number;
+  size: number; // Körperlänge in px
+  species: string;
 };
+
+const FISH_KINDS = [
+  { name: "Elritze", hp: 10, size: 6, c1: "#9fb8c4", c2: "#6d8494" },
+  { name: "Rotauge", hp: 25, size: 9, c1: "#b9c6cc", c2: "#a04a3a" },
+  { name: "Barsch", hp: 40, size: 12, c1: "#7f9c52", c2: "#3f4f26" },
+  { name: "Forelle", hp: 60, size: 15, c1: "#8fa6b5", c2: "#c1723f" },
+  { name: "Karpfen", hp: 80, size: 19, c1: "#c2a15c", c2: "#7a5c2a" },
+  { name: "Wels", hp: 100, size: 24, c1: "#6b6357", c2: "#3a352d" },
+];
 
 type Particle = {
   x: number;
@@ -116,6 +139,9 @@ export type Hud = {
   poison: string | null;
   attackCount: number;
   attackIndex: number;
+  stamina: number;
+  hunger: number;
+  sprinting: boolean;
 };
 
 const DAY_LENGTH = 300; // s pro Tag
@@ -231,6 +257,16 @@ export class Game {
       lastSound: 0,
       lastStep: 0,
       engagedUntil: 0,
+      peaceful: !isPlayer && Math.random() < 0.4,
+      skeleton: false,
+      stamina: 1,
+      sprinting: false,
+      gripId: null,
+      gripUntil: 0,
+      gripDps: 0,
+      gripMode: null,
+      heldUntil: 0,
+      rollUntil: 0,
     };
   }
 
@@ -280,6 +316,10 @@ export class Game {
   setMove(x: number, y: number) {
     this.move.x = x;
     this.move.y = y;
+  }
+
+  setSprint(on: boolean) {
+    this.player.sprinting = on;
   }
 
   cycleAttack() {
@@ -337,6 +377,36 @@ export class Game {
         e.tongueUntil = this.time + 0.6;
         this.tongueGrab(e);
         break;
+      case "pounce": {
+        const t = this.nearestFoe(e, 220);
+        e.jumpUntil = this.time + 0.4;
+        e.jumpDur = 0.4;
+        if (t) {
+          const a = Math.atan2(t.y - e.y, t.x - e.x);
+          e.angle = a;
+          e.vx = Math.cos(a) * 320;
+          e.vy = Math.sin(a) * 320;
+          this.startGrip(e, t, sp.power ?? 5, sp.duration, "pounce");
+        } else {
+          e.vx = Math.cos(e.angle) * 320;
+          e.vy = Math.sin(e.angle) * 320;
+        }
+        sfx.jump();
+        break;
+      }
+      case "constrict": {
+        const t = this.nearestFoe(e, 90);
+        if (t) this.startGrip(e, t, sp.power ?? 25, sp.duration, "constrict");
+        break;
+      }
+      case "deathroll": {
+        const t = this.nearestFoe(e, 90);
+        if (t) {
+          this.startGrip(e, t, sp.power ?? 30, sp.duration, "deathroll");
+          e.rollUntil = this.time + sp.duration;
+        }
+        break;
+      }
       case "spin":
         e.attack = {
           def: { ...e.def.attacks[1]!, arc: Math.PI, range: 46 },
@@ -375,6 +445,93 @@ export class Game {
     while (d > Math.PI) d -= Math.PI * 2;
     while (d < -Math.PI) d += Math.PI * 2;
     return d;
+  }
+
+  private nearestFoe(e: Ent, range: number): Ent | null {
+    let best: Ent | null = null;
+    let bd = range * range;
+    const list = e.isPlayer ? this.ents : [this.player, ...this.ents];
+    for (const t of list) {
+      if (t === e || t.dead) continue;
+      const d = dist2(e.x, e.y, t.x, t.y);
+      if (d < bd) {
+        bd = d;
+        best = t;
+      }
+    }
+    return best;
+  }
+
+  private startGrip(
+    e: Ent,
+    t: Ent,
+    dps: number,
+    dur: number,
+    mode: "constrict" | "deathroll" | "pounce",
+  ) {
+    e.gripId = t.id;
+    e.gripUntil = this.time + dur;
+    e.gripDps = dps;
+    e.gripMode = mode;
+    t.heldUntil = mode === "pounce" ? 0 : this.time + dur;
+    t.engagedUntil = this.time + dur + 4;
+    if (!t.isPlayer) t.targetId = e.id;
+    if (e.isPlayer) this.targetId = t.id;
+  }
+
+  private updateGrip(e: Ent, dt: number) {
+    if (!e.gripId || this.time > e.gripUntil) {
+      if (e.gripId && this.time > e.gripUntil) {
+        e.gripId = null;
+        e.gripMode = null;
+      }
+      return;
+    }
+    const t = this.entById(e.gripId);
+    if (!t || t.dead) {
+      e.gripId = null;
+      e.gripMode = null;
+      return;
+    }
+    if (dist2(e.x, e.y, t.x, t.y) > 160 * 160) {
+      e.gripId = null;
+      e.gripMode = null;
+      return;
+    }
+    this.damage(t, e.gripDps * dt, e, null);
+    if (e.gripMode === "pounce") {
+      // reitet auf dem Rücken – bleibt dran
+      t.hurt = Math.max(t.hurt, 0.4);
+      const a = Math.atan2(t.y - e.y, t.x - e.x);
+      e.x += Math.cos(a) * 60 * dt;
+      e.y += Math.sin(a) * 60 * dt;
+    } else {
+      t.heldUntil = Math.max(t.heldUntil, this.time + 0.2);
+      t.x += (e.x - t.x) * Math.min(1, dt * 6);
+      t.y += (e.y - t.y) * Math.min(1, dt * 6);
+      if (e.gripMode === "deathroll") {
+        // Beute Richtung Wasser ziehen
+        const w = this.waterDirection(e.x, e.y);
+        if (w !== null) {
+          const v = 60 * dt;
+          e.x += Math.cos(w) * v;
+          e.y += Math.sin(w) * v;
+        }
+      }
+    }
+  }
+
+  private waterDirection(x: number, y: number): number | null {
+    for (let a = 0; a < 12; a++) {
+      const ang = (a / 12) * Math.PI * 2;
+      if (sample(x + Math.cos(ang) * 160, y + Math.sin(ang) * 160).water) return ang;
+    }
+    return null;
+  }
+
+  private entById(id: number): Ent | null {
+    if (this.player.id === id) return this.player;
+    return this.ents.find((e) => e.id === id) ?? null;
   }
 
   // ---------- Shop ----------
@@ -449,7 +606,8 @@ export class Game {
       // nicht direkt vor dem Spieler spawnen
       if (dist2(x, y, this.player.x, this.player.y) < 300 * 300) continue;
       if (s.water) {
-        for (let f = 0; f < 4; f++)
+        for (let f = 0; f < 5; f++) {
+          const k = FISH_KINDS[Math.floor(Math.random() * FISH_KINDS.length)]!;
           this.critters.push({
             kind: "fish",
             x: x + Math.random() * 60,
@@ -457,7 +615,12 @@ export class Game {
             a: Math.random() * 6,
             sp: 20 + Math.random() * 40,
             seed: Math.random(),
+            hp: k.hp,
+            maxHp: k.hp,
+            size: k.size,
+            species: k.name,
           });
+        }
         continue;
       }
       const table = SPAWN_TABLE[s.biome];
@@ -467,15 +630,27 @@ export class Game {
       const def = speciesById(id);
       if (!def) continue;
       this.ents.push(this.makeEnt(def, x, y));
-      if (Math.random() < 0.7)
+      // Insekten bevorzugt an Büschen und Ufern
+      const bushes = (this.chunks.get(chunkKey(cx, cy)) ?? []).filter(
+        (pr) => pr.type === "bush" || pr.type === "berryBush" || pr.type === "reed" || pr.type === "flower",
+      );
+      const spot = bushes[Math.floor(Math.random() * bushes.length)];
+      for (let k = 0; k < 3; k++) {
+        const ix = spot ? spot.x + (Math.random() - 0.5) * 50 : x + 40;
+        const iy = spot ? spot.y + (Math.random() - 0.5) * 50 : y + 40;
         this.critters.push({
           kind: "insect",
-          x: x + 40,
-          y: y + 40,
+          x: ix,
+          y: iy,
           a: Math.random() * 6,
           sp: 25 + Math.random() * 30,
           seed: Math.random(),
+          hp: 1,
+          maxHp: 1,
+          size: 2,
+          species: "Insekt",
         });
+      }
     }
   }
 
@@ -501,7 +676,9 @@ export class Game {
 
     this.updatePlayer(dt);
     for (const e of this.ents) this.updateNpc(e, dt);
-    this.ents = this.ents.filter((e) => !(e.dead && this.time - e.deadAt > 8));
+    for (const e of this.ents)
+      if (e.dead && !e.skeleton && this.time - e.deadAt > 30) e.skeleton = true;
+    this.ents = this.ents.filter((e) => !(e.dead && this.time - e.deadAt > 150));
 
     for (const c of this.critters) this.updateCritter(c, dt);
 
@@ -567,11 +744,16 @@ export class Game {
 
   private speedOf(e: Ent, inWater: boolean): number {
     let base = e.def.speed;
-    if (inWater) base = e.def.swim ?? e.def.speed * 0.35;
+    if (inWater) {
+      // Grundregel: im Wasser 5 km/h – außer echten Schwimmern
+      base = e.def.fastSwimmer ? (e.def.swim ?? e.def.speed) : 5;
+    }
     let v = base * KMH;
+    if (e.sprinting && e.stamina > 0) v *= e.def.sprintFactor;
     if (e.boostUntil > this.time) v *= e.boostPow;
     if (e.curlUntil > this.time) v *= 0.35;
     if (e.attack) v *= 0.55;
+    if (e.heldUntil > this.time) v *= 0.1;
     return v;
   }
 
@@ -654,7 +836,15 @@ export class Game {
     this.advanceAttack(p, dt);
     this.applyDots(p, dt);
     p.hurt = Math.max(0, p.hurt - dt * 3);
-    p.hunger = Math.min(1, p.hunger + dt * 0.006);
+    this.updateGrip(p, dt);
+    const moving = p.speed01 > 0.05;
+    if (p.sprinting && moving && p.stamina > 0) {
+      p.stamina = Math.max(0, p.stamina - dt / Math.max(2, p.def.stamina));
+      if (p.stamina === 0) p.sprinting = false;
+    } else {
+      p.stamina = Math.min(1, p.stamina + dt / Math.max(3, p.def.stamina * 1.6));
+    }
+    p.hunger = Math.min(1, p.hunger + dt * (inWater ? 0.015 : 0.01));
     if (p.hunger > 0.9) p.hp -= dt * 1.5;
     if (p.hp <= 0 && !p.dead) {
       p.dead = true;
@@ -678,7 +868,35 @@ export class Game {
     }
   }
 
+  private eatCritters(e: Ent) {
+    const wantsInsects = e.def.diet === "insectivore" || e.def.diet === "omnivore";
+    const wantsFish = e.def.diet !== "herbivore";
+    for (let i = this.critters.length - 1; i >= 0; i--) {
+      const c = this.critters[i]!;
+      if (c.kind === "insect" && !wantsInsects) continue;
+      if (c.kind === "fish" && !wantsFish) continue;
+      const reach = c.kind === "fish" ? 26 : 20;
+      if (dist2(c.x, c.y, e.x, e.y) > reach * reach) continue;
+      if (c.kind === "fish" && c.hp > e.def.attacks[0]!.damage * 3) continue;
+      this.critters.splice(i, 1);
+      e.hunger = Math.max(0, e.hunger - (c.kind === "fish" ? 0.25 + c.size / 60 : 0.12));
+      if (e.isPlayer) {
+        e.hp = Math.min(e.maxHp, e.hp + (c.kind === "fish" ? c.maxHp * 0.4 : 4));
+        this.floats.push({
+          x: e.x,
+          y: e.y - 20,
+          text: c.kind === "fish" ? `${c.species} gefressen` : "Insekt",
+          life: 0.9,
+          color: "#b6e58a",
+        });
+        this.addCoins(c.kind === "fish" ? Math.round(c.maxHp / 8) : 1, e.x, e.y);
+      }
+      return;
+    }
+  }
+
   private tryEat(e: Ent) {
+    if (e.hunger > 0.1) this.eatCritters(e);
     if (e.hunger < 0.15) return;
     if (e.def.diet === "carnivore") return;
     const props = this.propsNear(e.x, e.y);
@@ -741,7 +959,10 @@ export class Game {
     target.hurt = 1;
     target.engagedUntil = this.time + 6;
     target.invisibleUntil = 0;
-    if (!target.isPlayer) target.targetId = source.id;
+    if (!target.isPlayer) {
+      target.targetId = source.id;
+      target.peaceful = false; // wehrt sich ab jetzt
+    }
     for (let i = 0; i < 5; i++)
       this.particles.push({
         x: target.x,
@@ -811,14 +1032,50 @@ export class Game {
 
     this.applyDots(e, step);
     e.hurt = Math.max(0, e.hurt - step * 3);
-    e.hunger = Math.min(1, e.hunger + step * 0.012);
+    e.hunger = Math.min(1, e.hunger + step * (sample(e.x, e.y).water ? 0.015 : 0.01));
+
+    this.updateGrip(e, step);
+    e.stamina = Math.min(1, e.stamina + step * 0.1);
 
     const s = sample(e.x, e.y);
-    const playerVisible =
-      this.player.invisibleUntil < this.time && !this.player.dead;
-    const dToPlayer = Math.hypot(this.player.x - e.x, this.player.y - e.y);
+    // Ziel bestimmen: Spieler oder anderes NPC
+    let foe: Ent = this.player;
+    let foeVisible = this.player.invisibleUntil < this.time && !this.player.dead;
+    let foeDist = Math.hypot(this.player.x - e.x, this.player.y - e.y);
+    if (e.targetId) {
+      const t = this.entById(e.targetId);
+      if (t && !t.dead) {
+        const d = Math.hypot(t.x - e.x, t.y - e.y);
+        if (d < 500) {
+          foe = t;
+          foeVisible = t.invisibleUntil < this.time;
+          foeDist = d;
+        }
+      }
+    }
+    if (foe === this.player && !e.peaceful && e.def.diet === "carnivore") {
+      // nächstes schwächeres NPC als Beute suchen
+      let best: Ent | null = null;
+      let bd = 340 * 340;
+      for (const o of this.ents) {
+        if (o === e || o.dead || o.invisibleUntil > this.time) continue;
+        if (power(o) > power(e) * 0.9) continue;
+        const d = dist2(e.x, e.y, o.x, o.y);
+        if (d < bd) {
+          bd = d;
+          best = o;
+        }
+      }
+      if (best && (!foeVisible || Math.sqrt(bd) < foeDist)) {
+        foe = best;
+        foeVisible = true;
+        foeDist = Math.sqrt(bd);
+      }
+    }
+    const playerVisible = foeVisible;
+    const dToPlayer = foeDist;
     const myPower = power(e);
-    const playerPower = power(this.player);
+    const foePower = power(foe);
 
     // Zustandslogik
     if (this.time > e.stateUntil) {
@@ -827,15 +1084,25 @@ export class Game {
       e.targetId = null;
 
       const threatened =
-        playerVisible && dToPlayer < 260 && (playerPower > myPower * 1.15 || e.hp < e.maxHp * 0.35);
+        playerVisible &&
+        dToPlayer < 260 &&
+        (foePower > myPower * 1.15 || e.hp < e.maxHp * 0.35) &&
+        (!e.peaceful || e.engagedUntil > this.time || foe !== this.player);
       const hunts =
         playerVisible &&
         dToPlayer < 320 &&
         e.def.diet === "carnivore" &&
-        myPower > playerPower * 0.85 &&
-        (e.hunger > 0.35 || e.engagedUntil > this.time);
+        myPower > foePower * 0.85 &&
+        (!e.peaceful || e.engagedUntil > this.time) &&
+        (e.hunger > 0.35 || e.engagedUntil > this.time || foe !== this.player);
 
-      if (e.engagedUntil > this.time && playerVisible && dToPlayer < 400) {
+      if (e.peaceful && e.engagedUntil < this.time && foe === this.player) {
+        // friedliches Tier: geht dem Spieler höchstens aus dem Weg
+        if (dToPlayer < 120 && playerVisible) {
+          e.state = "flee";
+          e.stateUntil = this.time + 1.2;
+        }
+      } else if (e.engagedUntil > this.time && playerVisible && dToPlayer < 400) {
         e.state = e.hp < e.maxHp * 0.25 ? "flee" : "chase";
         e.stateUntil = this.time + 1.5;
       } else if (threatened) {
@@ -864,7 +1131,7 @@ export class Game {
     let speedScale = 0.4;
     switch (e.state) {
       case "flee": {
-        desired = Math.atan2(e.y - this.player.y, e.x - this.player.x);
+        desired = Math.atan2(e.y - foe.y, e.x - foe.x);
         speedScale = 1;
         // in Richtung bevorzugtes Biom ausweichen
         const probe = sample(e.x + Math.cos(desired) * 120, e.y + Math.sin(desired) * 120);
@@ -872,7 +1139,7 @@ export class Game {
         break;
       }
       case "chase": {
-        desired = Math.atan2(this.player.y - e.y, this.player.x - e.x);
+        desired = Math.atan2(foe.y - e.y, foe.x - e.x);
         speedScale = 0.95;
         if (dToPlayer < e.def.attacks[0]!.range + 12) {
           e.state = "attack";
@@ -881,12 +1148,17 @@ export class Game {
         break;
       }
       case "attack": {
-        desired = Math.atan2(this.player.y - e.y, this.player.x - e.x);
+        desired = Math.atan2(foe.y - e.y, foe.x - e.x);
         speedScale = 0.2;
         const atk = e.def.attacks[0]!;
         if (this.time > e.atkReady && !e.attack && dToPlayer < atk.range + 16) {
           e.attack = { def: atk, t: 0, dur: 0.34, hit: false };
           e.atkReady = this.time + atk.cooldown + 0.4;
+        }
+        if (this.time > e.specialReady && dToPlayer < 120 && Math.random() < 0.02) {
+          e.specialReady = this.time + e.def.special.cooldown;
+          e.targetId = foe.id;
+          this.applySpecial(e, false);
         }
         if (dToPlayer > atk.range + 40) {
           e.state = "chase";
@@ -946,6 +1218,9 @@ export class Game {
     this.collide(e, step);
     this.advanceAttack(e, step);
 
+    // Frösche fressen Insekten an Ufern und Büschen
+    if (e.def.diet === "insectivore" && this.tick % 15 === 0) this.eatCritters(e);
+
     // Laute
     if (!far && this.time - e.lastSound > 12 + Math.random() * 20) {
       e.lastSound = this.time;
@@ -954,6 +1229,9 @@ export class Game {
   }
 
   private updateCritter(c: Critter, dt: number) {
+    if (c.kind === "insect") {
+      c.a += Math.sin(this.time * 3 + c.seed * 10) * dt * 6;
+    }
     const p = this.player;
     const d = Math.hypot(p.x - c.x, p.y - c.y);
     if (d < 90) c.a = Math.atan2(c.y - p.y, c.x - p.x);
@@ -1015,16 +1293,43 @@ export class Game {
       ctx.translate(c.x, c.y);
       ctx.rotate(c.a);
       if (c.kind === "fish") {
-        ctx.globalAlpha = 0.75;
-        ctx.fillStyle = c.seed > 0.5 ? "#8fb8c9" : "#c8a86a";
+        const k = FISH_KINDS.find((f) => f.name === c.species) ?? FISH_KINDS[0]!;
+        const L = c.size;
+        const wob = Math.sin(this.time * 8 + c.seed * 12) * 0.25;
+        ctx.globalAlpha = 0.85;
+        const g = ctx.createLinearGradient(0, -L * 0.3, 0, L * 0.3);
+        g.addColorStop(0, k.c1);
+        g.addColorStop(1, k.c2);
+        ctx.fillStyle = g;
         ctx.beginPath();
-        ctx.ellipse(0, 0, 6, 2.6, 0, 0, Math.PI * 2);
+        ctx.moveTo(L * 0.55, 0);
+        ctx.quadraticCurveTo(0, -L * 0.3, -L * 0.45, wob * L * 0.2);
+        ctx.quadraticCurveTo(0, L * 0.3, L * 0.55, 0);
         ctx.fill();
+        // Rückenflosse
+        ctx.fillStyle = k.c2;
         ctx.beginPath();
-        ctx.moveTo(-6, 0);
-        ctx.lineTo(-10, -3);
-        ctx.lineTo(-10, 3);
+        ctx.moveTo(L * 0.1, -L * 0.22);
+        ctx.lineTo(-L * 0.1, -L * 0.45);
+        ctx.lineTo(-L * 0.2, -L * 0.18);
         ctx.closePath();
+        ctx.fill();
+        // Schwanzflosse
+        ctx.save();
+        ctx.translate(-L * 0.45, wob * L * 0.2);
+        ctx.rotate(wob);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(-L * 0.3, -L * 0.28);
+        ctx.lineTo(-L * 0.22, 0);
+        ctx.lineTo(-L * 0.3, L * 0.28);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+        // Auge
+        ctx.fillStyle = "#12181c";
+        ctx.beginPath();
+        ctx.arc(L * 0.34, -L * 0.06, Math.max(0.7, L * 0.055), 0, Math.PI * 2);
         ctx.fill();
       } else {
         ctx.fillStyle = "#3a3226";
@@ -1097,10 +1402,14 @@ export class Game {
       dead: e.dead,
       curled: e.curlUntil > this.time,
       swimming: s.water && !e.dead,
-      alpha: invisible ? (e.isPlayer ? 0.35 : 0.12) : e.dead ? 0.6 : 1,
+      alpha: invisible ? (e.isPlayer ? 0.35 : 0.12) : e.dead ? (e.skeleton ? 0.9 : 0.7) : 1,
       tongue: e.tongueUntil > this.time ? Math.sin((0.6 - (e.tongueUntil - this.time)) / 0.6 * Math.PI) : 0,
       jump: jumpT,
       resting: e.state === "rest",
+      skeleton: e.skeleton,
+      decay: e.dead ? Math.min(1, (this.time - e.deadAt) / 30) : 0,
+      rolling: e.rollUntil > this.time ? (this.time % 1) : 0,
+      ridden: e.heldUntil > this.time,
     };
     drawCreature(ctx, e.def, pose);
     if (s.water && !e.dead) {
@@ -1227,6 +1536,9 @@ export class Game {
       poison: p.dots[0]?.label ?? null,
       attackCount: p.def.attacks.length,
       attackIndex: this.attackIndex % p.def.attacks.length,
+      stamina: p.stamina,
+      hunger: p.hunger,
+      sprinting: p.sprinting,
     };
   }
 }
