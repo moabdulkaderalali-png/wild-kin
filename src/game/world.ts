@@ -176,6 +176,56 @@ export type PropType =
   | "log"
   | "fruit";
 
+export type FruitKind =
+  | "berry"
+  | "apple"
+  | "banana"
+  | "coconut"
+  | "cactusFruit"
+  | "mango"
+  | "fig"
+  | "papaya"
+  | "melon"
+  | "grape"
+  | "plum"
+  | "pineapple"
+  | "orange"
+  | "pear";
+
+export const FRUIT_LABEL: Record<FruitKind, string> = {
+  berry: "Beeren",
+  apple: "Apfel",
+  banana: "Banane",
+  coconut: "Kokosnuss",
+  cactusFruit: "Kaktusfeige",
+  mango: "Mango",
+  fig: "Feige",
+  papaya: "Papaya",
+  melon: "Melone",
+  grape: "Trauben",
+  plum: "Pflaume",
+  pineapple: "Ananas",
+  orange: "Orange",
+  pear: "Birne",
+};
+
+const FRUITS_BY_BIOME: Record<string, FruitKind[]> = {
+  jungle: ["banana", "mango", "papaya", "coconut", "pineapple", "fig"],
+  forest: ["apple", "pear", "plum", "berry", "grape"],
+  grass: ["apple", "berry", "grape", "plum"],
+  savanna: ["melon", "fig", "orange"],
+  beach: ["coconut", "papaya"],
+  desert: ["cactusFruit", "melon"],
+  swamp: ["fig", "berry"],
+  mountain: ["berry", "plum"],
+  snow: ["berry"],
+};
+
+function pickFruit(biome: string, roll: number): FruitKind {
+  const list = FRUITS_BY_BIOME[biome] ?? ["berry"];
+  return list[Math.floor(roll * list.length) % list.length] as FruitKind;
+}
+
 export type Prop = {
   id: string;
   type: PropType;
@@ -185,7 +235,7 @@ export type Prop = {
   seed: number;
   edible: boolean;
   eatenUntil: number; // Zeitstempel bis zum Nachwachsen
-  fruit?: "berry" | "apple" | "banana" | "coconut" | "cactusFruit";
+  fruit?: FruitKind;
 };
 
 const TALL: PropType[] = ["tree", "pine", "palm", "jungleTree", "acacia"];
@@ -216,24 +266,29 @@ export function generateProps(cx: number, cy: number): Prop[] {
     switch (s.biome) {
       case "forest":
         type = roll < 0.34 ? "tree" : roll < 0.5 ? "pine" : roll < 0.62 ? "bush" : roll < 0.7 ? "berryBush" : roll < 0.78 ? "mushroom" : roll < 0.86 ? "rock" : "grassTuft";
-        if (type === "berryBush") fruit = "berry";
+        if (type === "berryBush") fruit = pickFruit("forest", seed);
         break;
       case "jungle":
         type = roll < 0.45 ? "jungleTree" : roll < 0.58 ? "palm" : roll < 0.74 ? "bush" : roll < 0.82 ? "fruit" : roll < 0.9 ? "flower" : "grassTuft";
-        if (type === "fruit") fruit = roll < 0.86 ? "banana" : "coconut";
+        if (type === "fruit") fruit = pickFruit("jungle", seed);
         break;
       case "savanna":
-        type = roll < 0.2 ? "acacia" : roll < 0.32 ? "bush" : roll < 0.4 ? "rock" : "grassTuft";
+        type = roll < 0.2 ? "acacia" : roll < 0.28 ? "bush" : roll < 0.34 ? "fruit" : roll < 0.42 ? "rock" : "grassTuft";
+        if (type === "fruit") fruit = pickFruit("savanna", seed);
         break;
       case "grass":
-        type = roll < 0.12 ? "tree" : roll < 0.24 ? "bush" : roll < 0.3 ? "berryBush" : roll < 0.36 ? "flower" : "grassTuft";
-        if (type === "berryBush") fruit = "berry";
+        type = roll < 0.12 ? "tree" : roll < 0.22 ? "bush" : roll < 0.3 ? "berryBush" : roll < 0.34 ? "fruit" : roll < 0.4 ? "flower" : "grassTuft";
+        if (type === "berryBush" || type === "fruit") fruit = pickFruit("grass", seed);
         break;
       case "desert":
         if (roll < 0.14) type = "cactus";
         else if (roll < 0.22) type = "rock";
         else if (roll < 0.3) type = "grassTuft";
-        if (type === "cactus" && roll < 0.05) fruit = "cactusFruit";
+        if (type === "cactus" && roll < 0.09) fruit = "cactusFruit";
+        else if (type === null && roll < 0.33) {
+          type = "fruit";
+          fruit = pickFruit("desert", seed);
+        }
         break;
       case "snow":
         type = roll < 0.22 ? "pine" : roll < 0.4 ? "iceBlock" : roll < 0.5 ? "rock" : null;
@@ -242,11 +297,12 @@ export function generateProps(cx: number, cy: number): Prop[] {
         type = roll < 0.55 ? "rock" : roll < 0.68 ? "pine" : roll < 0.78 ? "grassTuft" : null;
         break;
       case "swamp":
-        type = roll < 0.4 ? "reed" : roll < 0.55 ? "bush" : roll < 0.68 ? "mushroom" : roll < 0.8 ? "log" : "grassTuft";
+        type = roll < 0.38 ? "reed" : roll < 0.52 ? "bush" : roll < 0.62 ? "fruit" : roll < 0.72 ? "mushroom" : roll < 0.82 ? "log" : "grassTuft";
+        if (type === "fruit") fruit = pickFruit("swamp", seed);
         break;
       case "beach":
         type = roll < 0.12 ? "palm" : roll < 0.2 ? "rock" : null;
-        if (type === "palm" && roll < 0.06) fruit = "coconut";
+        if (type === "palm" && roll < 0.08) fruit = "coconut";
         break;
       default:
         type = null;
@@ -293,14 +349,14 @@ export const SPAWN_TABLE: Record<Biome, string[]> = {
   ocean: [],
   ice: ["penguin"],
   beach: ["frog", "rabbit"],
-  river: ["frog", "otter"],
-  lake: ["frog", "otter"],
-  swamp: ["frog", "snake", "otter"],
+  river: ["frog", "otter", "anaconda", "crocodile"],
+  lake: ["frog", "otter", "crocodile"],
+  swamp: ["frog", "snake", "otter", "anaconda", "crocodile"],
   desert: ["snake", "hyena", "camel"],
   savanna: ["hyena", "cheetah", "zebra", "snake", "leopard", "goat"],
   grass: ["mouse", "rabbit", "cat", "deer", "goat", "wolf", "cheetah"],
   forest: ["mouse", "rabbit", "hedgehog", "fox", "deer", "wolf", "cat", "leopard"],
-  jungle: ["leopard", "komodo", "snake", "frog"],
+  jungle: ["leopard", "komodo", "snake", "frog", "anaconda", "crocodile"],
   snow: ["wolf", "fox", "penguin"],
   mountain: ["goat", "wolf"],
 };
