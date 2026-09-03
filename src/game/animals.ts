@@ -25,7 +25,10 @@ export type SpecialKind =
   | "boost"
   | "frenzy"
   | "ambush"
-  | "spin";
+  | "spin"
+  | "constrict"
+  | "deathroll"
+  | "pounce";
 
 export type SpecialDef = {
   name: string;
@@ -53,6 +56,8 @@ export type BodyPlan = {
   spines?: boolean;
   horns?: boolean;
   webbed?: boolean;
+  plates?: boolean; // Panzerschuppen (Krokodil)
+  jaws?: boolean; // lange Kiefer mit Zähnen
 };
 
 export type AnimalDef = {
@@ -71,6 +76,7 @@ export type AnimalDef = {
   scale: number;
   climber?: boolean;
   aquatic?: boolean;
+  fastSwimmer?: boolean; // nicht auf 5 km/h im Wasser begrenzt
   bounty: number; // Coins beim Besiegen
   body: BodyPlan;
   voice: { freq: number; type: OscillatorType; dur: number; wobble: number };
@@ -339,6 +345,7 @@ export const ANIMALS: AnimalDef[] = [
     diet: "carnivore",
     scale: 0.85,
     aquatic: true,
+    fastSwimmer: true,
     bounty: 70,
     body: {
       len: 48,
@@ -620,12 +627,12 @@ export const ANIMALS: AnimalDef[] = [
       },
     ],
     special: {
-      name: "Hinterhalt",
-      kind: "ambush",
-      cooldown: 10,
-      duration: 6,
-      power: 2,
-      desc: "Angepirscht: unsichtbar, der nächste Treffer verdoppelt Schaden.",
+      name: "Rückensprung",
+      kind: "pounce",
+      cooldown: 14,
+      duration: 10,
+      power: 7,
+      desc: "Springt auf den Rücken des Gegners: 10 s lang 7 Schaden pro Sekunde.",
     },
     biomes: ["jungle", "savanna", "forest"],
     diet: "carnivore",
@@ -672,12 +679,12 @@ export const ANIMALS: AnimalDef[] = [
       },
     ],
     special: {
-      name: "Hetzjagd",
-      kind: "boost",
-      cooldown: 10,
-      duration: 3,
-      power: 1.7,
-      desc: "3 s extremer Sprint mit sofortiger Beschleunigung.",
+      name: "Rückensprung",
+      kind: "pounce",
+      cooldown: 14,
+      duration: 10,
+      power: 5,
+      desc: "Springt auf den Rücken des Gegners: 10 s lang 5 Schaden pro Sekunde.",
     },
     biomes: ["savanna", "grass"],
     diet: "carnivore",
@@ -700,6 +707,106 @@ export const ANIMALS: AnimalDef[] = [
     },
     voice: { freq: 1100, type: "triangle", dur: 0.2, wobble: 500 },
     note: "Schnellstes Tier der Welt – aber zerbrechlich.",
+  },
+  {
+    id: "anaconda",
+    name: "Anakonda",
+    price: 600,
+    hp: 700,
+    speed: 30,
+    swim: 40,
+    sprintFactor: 1.25,
+    stamina: 14,
+    attacks: [bite(30, 34, { windup: 0.12 })],
+    special: {
+      name: "Umschlingen",
+      kind: "constrict",
+      cooldown: 16,
+      duration: 5,
+      power: 25,
+      desc: "Wickelt sich 5 s um das Opfer: 25 Schaden pro Sekunde.",
+    },
+    biomes: ["river", "lake", "swamp", "jungle"],
+    diet: "carnivore",
+    scale: 1.35,
+    aquatic: true,
+    fastSwimmer: true,
+    bounty: 420,
+    body: {
+      len: 140,
+      wid: 20,
+      color: "#4e5b32",
+      color2: "#2c3620",
+      belly: "#c9c48f",
+      pattern: "rosettes",
+      headR: 12,
+      snout: 7,
+      ears: "none",
+      tail: "none",
+      tailLen: 0,
+      legLen: 0,
+      form: "snake",
+    },
+    voice: { freq: 2200, type: "sawtooth", dur: 0.8, wobble: 50 },
+    note: "Riesenschlange: erdrückt ihre Beute im Wasser wie an Land.",
+  },
+  {
+    id: "crocodile",
+    name: "Krokodil",
+    price: 900,
+    hp: 1400,
+    speed: 25,
+    swim: 35,
+    sprintFactor: 1.2,
+    stamina: 8,
+    attacks: [
+      bite(70, 38, { windup: 0.2 }),
+      {
+        id: "tail",
+        name: "Schwanzschlag",
+        damage: 35,
+        cooldown: 0.6,
+        range: 46,
+        arc: 0.9,
+        rear: true,
+        anim: "tail",
+        windup: 0.2,
+      },
+    ],
+    special: {
+      name: "Todesrolle",
+      kind: "deathroll",
+      cooldown: 20,
+      duration: 7,
+      power: 30,
+      desc: "Schnappt das Opfer, rollt 7 s lang (30 Schaden/s) und zieht es ins Wasser.",
+    },
+    biomes: ["river", "lake", "swamp", "jungle"],
+    diet: "carnivore",
+    scale: 1.45,
+    aquatic: true,
+    fastSwimmer: true,
+    bounty: 700,
+    body: {
+      len: 96,
+      wid: 30,
+      color: "#4a5540",
+      color2: "#2c3427",
+      belly: "#b6b184",
+      pattern: "bands",
+      headR: 15,
+      snout: 22,
+      ears: "tiny",
+      tail: "thin",
+      tailLen: 70,
+      legLen: 10,
+      form: "quad",
+      plates: true,
+      jaws: true,
+      webbed: true,
+    },
+    voice: { freq: 130, type: "sawtooth", dur: 0.9, wobble: 40 },
+    note: "Panzerechse mit tödlichem Biss und Todesrolle.",
   },
 ];
 
