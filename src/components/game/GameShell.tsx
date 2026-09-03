@@ -26,6 +26,9 @@ const EMPTY_HUD: Hud = {
   poison: null,
   attackCount: 1,
   attackIndex: 0,
+  stamina: 1,
+  hunger: 0,
+  sprinting: false,
 };
 
 const WEATHER_LABEL: Record<string, string> = {
@@ -44,6 +47,11 @@ export function GameShell() {
   const [shopOpen, setShopOpen] = useState(false);
   const [started, setStarted] = useState(false);
   const [sound, setSound] = useState(true);
+  const [save, setSave] = useState<ReturnType<typeof loadSave> | null>(null);
+
+  useEffect(() => {
+    setSave(loadSave());
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -70,7 +78,6 @@ export function GameShell() {
   const specialPct = 100 - (hud.specialReady / hud.specialTotal) * 100;
 
   if (!started) {
-    const save = typeof window !== "undefined" ? loadSave() : null;
     return (
       <div className="relative flex h-[100dvh] w-full flex-col items-center justify-center gap-6 overflow-hidden bg-background px-6 text-center">
         <div className="absolute inset-0 opacity-40 [background:radial-gradient(circle_at_30%_20%,var(--color-primary)/0.35,transparent_55%),radial-gradient(circle_at_75%_75%,var(--color-coin)/0.25,transparent_50%)]" />
@@ -120,6 +127,20 @@ export function GameShell() {
                 className="h-full rounded-full bg-life transition-[width] duration-200"
                 style={{ width: `${hpPct}%` }}
               />
+            </div>
+            <div className="mt-1 flex w-32 gap-1">
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-special transition-[width] duration-150"
+                  style={{ width: `${Math.round(hud.stamina * 100)}%` }}
+                />
+              </div>
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-coin transition-[width] duration-150"
+                  style={{ width: `${Math.round((1 - hud.hunger) * 100)}%` }}
+                />
+              </div>
             </div>
             <div className="mt-1 text-[10px] text-foreground/80">
               {hud.hp}/{hud.maxHp} HP
@@ -185,7 +206,24 @@ export function GameShell() {
 
       {/* Steuerung */}
       <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-4 pb-8">
-        <Joystick onMove={(x, y) => g?.setMove(x, y)} />
+        <div className="flex flex-col items-center gap-3">
+          <Joystick onMove={(x, y) => g?.setMove(x, y)} />
+          <button
+            onPointerDown={() => g?.setSprint(true)}
+            onPointerUp={() => g?.setSprint(false)}
+            onPointerCancel={() => g?.setSprint(false)}
+            onPointerLeave={() => g?.setSprint(false)}
+            className={`relative size-16 overflow-hidden rounded-full border border-hud-border text-[10px] font-bold backdrop-blur-sm active:scale-95 ${
+              hud.sprinting ? "bg-special/80 text-primary-foreground" : "bg-hud/80"
+            }`}
+          >
+            <span className="relative z-10">SPRINT</span>
+            <span
+              className="absolute inset-x-0 bottom-0 bg-special/40"
+              style={{ height: `${Math.round(hud.stamina * 100)}%` }}
+            />
+          </button>
+        </div>
         <div className="flex items-end gap-3">
           <button
             onPointerDown={() => g?.pressSpecial()}
