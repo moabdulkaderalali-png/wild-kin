@@ -368,8 +368,8 @@ export function drawFruit(
       stalk(ctx, 5);
       break;
     case "pear":
-      ctx.fillStyle = "#b7c martial";
-      glossy(ctx, 4, 5.4, "#cfd martial", "#7d9a2b");
+      glossy(ctx, 4, 5.4, "#cfd97a", "#7d9a2b");
+      stalk(ctx, 5, 0.2);
       break;
     case "plum":
       glossy(ctx, 4.2, 4.6, "#8e5fbf", "#3f2358");
