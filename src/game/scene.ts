@@ -199,12 +199,13 @@ export function drawProp(
         ctx.fill();
       }
       if (p.type === "berryBush" && !eaten) {
-        ctx.fillStyle = "#a92c46";
-        for (let i = 0; i < 6; i++) {
-          const a = i * 1.7;
-          ctx.beginPath();
-          ctx.arc(Math.cos(a) * 7, Math.sin(a) * 5, 1.9, 0, Math.PI * 2);
-          ctx.fill();
+        for (let i = 0; i < 7; i++) {
+          const a = i * 1.7 + p.seed * 3;
+          ctx.save();
+          ctx.translate(Math.cos(a) * 7.5, Math.sin(a) * 5.5);
+          ctx.scale(0.55, 0.55);
+          drawFruit(ctx, p.fruit ?? "berry", p.seed + i * 0.11, 0);
+          ctx.restore();
         }
       }
       break;
@@ -236,20 +237,11 @@ export function drawProp(
     case "fruit": {
       if (canopyPass) break;
       if (eaten) break;
-      const c =
-        p.fruit === "banana" ? "#e3c33f" : p.fruit === "coconut" ? "#6b4a2c" : "#c33c3c";
-      ctx.fillStyle = "rgba(0,0,0,0.2)";
+      ctx.fillStyle = "rgba(0,0,0,0.22)";
       ctx.beginPath();
-      ctx.ellipse(1.5, 2.5, 5, 3, 0, 0, Math.PI * 2);
+      ctx.ellipse(2, 3.5, 6, 3.2, 0, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = c;
-      ctx.beginPath();
-      ctx.arc(0, 0, 4.4, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "rgba(255,255,255,0.35)";
-      ctx.beginPath();
-      ctx.arc(-1.4, -1.4, 1.3, 0, Math.PI * 2);
-      ctx.fill();
+      drawFruit(ctx, p.fruit ?? "berry", p.seed, sway);
       break;
     }
     default: {
@@ -322,6 +314,196 @@ export function drawProp(
         }
       }
       break;
+    }
+  }
+  ctx.restore();
+}
+
+// --- Detaillierte Früchte -------------------------------------------------
+function glossy(
+  ctx: CanvasRenderingContext2D,
+  rx: number,
+  ry: number,
+  c1: string,
+  c2: string,
+) {
+  const g = ctx.createRadialGradient(-rx * 0.35, -ry * 0.4, 0.5, 0, 0, rx * 1.4);
+  g.addColorStop(0, c1);
+  g.addColorStop(1, c2);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.45)";
+  ctx.beginPath();
+  ctx.ellipse(-rx * 0.35, -ry * 0.42, rx * 0.26, ry * 0.18, -0.5, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function stalk(ctx: CanvasRenderingContext2D, h: number, lean = 0.4) {
+  ctx.strokeStyle = "#5d4326";
+  ctx.lineWidth = 1.2;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(0, -h * 0.6);
+  ctx.quadraticCurveTo(lean * 2, -h, lean * 3, -h * 1.2);
+  ctx.stroke();
+  ctx.fillStyle = "#4e7f34";
+  ctx.beginPath();
+  ctx.ellipse(lean * 4.5, -h * 1.05, 3.2, 1.6, -0.5, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+export function drawFruit(
+  ctx: CanvasRenderingContext2D,
+  kind: string,
+  seed: number,
+  sway = 0,
+) {
+  ctx.save();
+  ctx.rotate(sway * 0.05 + (seed - 0.5) * 0.4);
+  switch (kind) {
+    case "apple":
+      glossy(ctx, 5, 4.8, "#e2564a", "#8e1f1c");
+      stalk(ctx, 5);
+      break;
+    case "pear":
+      ctx.fillStyle = "#b7c martial";
+      glossy(ctx, 4, 5.4, "#cfd martial", "#7d9a2b");
+      break;
+    case "plum":
+      glossy(ctx, 4.2, 4.6, "#8e5fbf", "#3f2358");
+      ctx.strokeStyle = "rgba(0,0,0,0.35)";
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(0, -4.4);
+      ctx.quadraticCurveTo(1.2, 0, 0, 4.4);
+      ctx.stroke();
+      stalk(ctx, 4);
+      break;
+    case "orange":
+      glossy(ctx, 5, 4.8, "#ffae42", "#c96a09");
+      ctx.fillStyle = "rgba(120,60,0,0.25)";
+      for (let i = 0; i < 8; i++) {
+        const a = i * 0.9 + seed;
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * 2.6, Math.sin(a) * 2.4, 0.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      break;
+    case "banana":
+      ctx.fillStyle = "#e8c53c";
+      ctx.strokeStyle = "#b38f1d";
+      ctx.lineWidth = 1;
+      for (let i = -1; i <= 1; i++) {
+        ctx.save();
+        ctx.rotate(i * 0.28);
+        ctx.beginPath();
+        ctx.moveTo(-5, 3);
+        ctx.quadraticCurveTo(0, -6, 6, 1);
+        ctx.quadraticCurveTo(1, -2.5, -5, 3);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
+      ctx.fillStyle = "#6b5a1b";
+      ctx.beginPath();
+      ctx.arc(-5, 3, 1.3, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case "coconut":
+      glossy(ctx, 5.4, 5, "#8a6238", "#3d2716");
+      ctx.strokeStyle = "rgba(40,25,12,0.7)";
+      ctx.lineWidth = 0.8;
+      for (let i = -1; i <= 1; i++) {
+        ctx.beginPath();
+        ctx.moveTo(-4.5, i * 1.8);
+        ctx.quadraticCurveTo(0, i * 2.6, 4.5, i * 1.6);
+        ctx.stroke();
+      }
+      break;
+    case "mango":
+      ctx.rotate(-0.4);
+      glossy(ctx, 6, 4.2, "#ffc247", "#d0532a");
+      stalk(ctx, 4, 0.2);
+      break;
+    case "papaya":
+      glossy(ctx, 4.4, 6.4, "#f0b04a", "#b06b1f");
+      ctx.fillStyle = "rgba(90,50,10,0.35)";
+      ctx.beginPath();
+      ctx.ellipse(0, 1.5, 1.6, 2.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case "melon":
+      glossy(ctx, 7.5, 6, "#5f9e3c", "#2c5320");
+      ctx.strokeStyle = "rgba(20,50,15,0.7)";
+      ctx.lineWidth = 1;
+      for (let i = -2; i <= 2; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * 2.6, -5.4);
+        ctx.quadraticCurveTo(i * 3.4, 0, i * 2.6, 5.4);
+        ctx.stroke();
+      }
+      break;
+    case "pineapple":
+      ctx.fillStyle = "#4e8a34";
+      for (let i = -2; i <= 2; i++) {
+        ctx.beginPath();
+        ctx.moveTo(0, -4);
+        ctx.lineTo(i * 2.2, -11 - Math.abs(i));
+        ctx.lineTo(i * 2.2 + 1.6, -4);
+        ctx.closePath();
+        ctx.fill();
+      }
+      glossy(ctx, 4.6, 6.2, "#e0a52f", "#8f5c11");
+      ctx.strokeStyle = "rgba(70,40,5,0.5)";
+      ctx.lineWidth = 0.7;
+      for (let i = -2; i <= 2; i++) {
+        ctx.beginPath();
+        ctx.moveTo(-4.4, i * 2);
+        ctx.lineTo(4.4, i * 2 - 1.2);
+        ctx.stroke();
+      }
+      break;
+    case "fig":
+      glossy(ctx, 4.2, 4.8, "#8a5a86", "#3f2340");
+      stalk(ctx, 4.2, 0.1);
+      break;
+    case "grape":
+      for (let i = 0; i < 7; i++) {
+        const a = i * 1.9 + seed * 4;
+        ctx.save();
+        ctx.translate(Math.cos(a) * 2.8, Math.sin(a) * 3.4 + 1);
+        glossy(ctx, 2.4, 2.3, "#8d6fd0", "#3c2560");
+        ctx.restore();
+      }
+      ctx.fillStyle = "#4e7f34";
+      ctx.beginPath();
+      ctx.ellipse(2.5, -4.5, 3, 1.6, -0.6, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    case "cactusFruit":
+      glossy(ctx, 3.4, 5, "#d4436a", "#7c1b38");
+      ctx.strokeStyle = "rgba(255,255,255,0.5)";
+      ctx.lineWidth = 0.6;
+      for (let i = 0; i < 6; i++) {
+        const a = i * 1.05;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(a) * 1.6, Math.sin(a) * 2.6);
+        ctx.lineTo(Math.cos(a) * 3.4, Math.sin(a) * 5);
+        ctx.stroke();
+      }
+      break;
+    default: {
+      // Beeren-Traube
+      for (let i = 0; i < 5; i++) {
+        const a = i * 1.6 + seed * 5;
+        ctx.save();
+        ctx.translate(Math.cos(a) * 2.6, Math.sin(a) * 2.4);
+        glossy(ctx, 2.2, 2.1, "#d2455f", "#6d1226");
+        ctx.restore();
+      }
     }
   }
   ctx.restore();
