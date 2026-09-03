@@ -19,6 +19,11 @@ export type Pose = {
   tongue: number; // 0..1 Zungenausfahrt
   jump: number; // 0..1 Sprunghöhe
   resting: boolean;
+  skeleton?: boolean; // Leiche ist zu Knochen verfallen
+  decay?: number; // 0..1 Verwesungsgrad der Leiche
+  breathe?: number; // Atem-/Idle-Phase
+  rolling?: number; // Todesrolle 0..1
+  ridden?: boolean; // trägt gerade einen Angreifer auf dem Rücken
 };
 
 function shade(hex: string, amt: number): string {
@@ -186,6 +191,30 @@ function drawQuad(ctx: CanvasRenderingContext2D, def: AnimalDef, p: Pose) {
   ctx.quadraticCurveTo(0, -hw * 0.55, hl * 0.7, -hw * 0.3);
   ctx.stroke();
 
+  if (b.plates) {
+    // Panzerschuppen in Reihen
+    ctx.fillStyle = shade(b.color2, 12);
+    for (let row = -1; row <= 1; row++) {
+      for (let i = 0; i < 9; i++) {
+        const px = -hl * 0.85 + (i / 8) * len * 0.85;
+        const py = row * hw * 0.42;
+        ctx.beginPath();
+        ctx.roundRect(px - 2.2, py - 1.8, 4.4, 3.6, 1.2);
+        ctx.fill();
+      }
+    }
+    ctx.fillStyle = shade(b.color2, -18);
+    for (let i = 0; i < 7; i++) {
+      const px = -hl * 0.5 + (i / 6) * len * 0.7;
+      ctx.beginPath();
+      ctx.moveTo(px - 2, 0);
+      ctx.lineTo(px, -3.4);
+      ctx.lineTo(px + 2, 0);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
   if (b.spines) {
     ctx.strokeStyle = shade(b.color2, -10);
     ctx.lineWidth = 1.1;
@@ -256,8 +285,39 @@ function drawQuad(ctx: CanvasRenderingContext2D, def: AnimalDef, p: Pose) {
     });
   }
 
+  // Lange Kiefer (Krokodil)
+  if (b.jaws) {
+    const open = bite * 0.55;
+    ctx.save();
+    ctx.fillStyle = shade(b.color, 4);
+    [-1, 1].forEach((sd) => {
+      ctx.save();
+      ctx.rotate(sd * open);
+      ctx.beginPath();
+      ctx.moveTo(b.headR * 0.2, sd * b.headR * 0.55);
+      ctx.quadraticCurveTo(b.snout * 0.9, sd * b.headR * 0.42, b.snout * 1.15, sd * 1.2);
+      ctx.lineTo(b.snout * 1.15, -sd * 0.4);
+      ctx.quadraticCurveTo(b.snout * 0.7, -sd * 0.5, b.headR * 0.2, -sd * 0.5);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#f4f0e2";
+      for (let i = 0; i < 7; i++) {
+        const tx = b.headR * 0.5 + (i / 6) * b.snout * 0.6;
+        ctx.beginPath();
+        ctx.moveTo(tx, sd * b.headR * 0.34);
+        ctx.lineTo(tx + 1.4, sd * (b.headR * 0.34 - sd * 0));
+        ctx.lineTo(tx + 0.6, sd * b.headR * 0.1);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.fillStyle = shade(b.color, 4);
+      ctx.restore();
+    });
+    ctx.restore();
+  }
+
   // Schnauze
-  if (b.snout > 0) {
+  if (b.snout > 0 && !b.jaws) {
     ctx.fillStyle = shade(b.color, 8);
     ellipse(ctx, b.headR * 0.65, 0, b.snout * 0.85, b.headR * 0.5);
     ctx.fill();
@@ -402,6 +462,142 @@ function drawFrog(ctx: CanvasRenderingContext2D, def: AnimalDef, p: Pose) {
   }
 }
 
+
+// ---- Skelett: an die Körperform des Tieres angepasst ----------------------
+function bone(
+  ctx: CanvasRenderingContext2D,
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+  w: number,
+) {
+  ctx.strokeStyle = "#efeadc";
+  ctx.lineWidth = w;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(x0, y0);
+  ctx.lineTo(x1, y1);
+  ctx.stroke();
+}
+
+function skull(ctx: CanvasRenderingContext2D, r: number, snout: number) {
+  ctx.fillStyle = "#f2eddf";
+  ctx.beginPath();
+  ctx.ellipse(0, 0, r * 0.95, r * 0.78, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Schnauzenknochen
+  ctx.beginPath();
+  ctx.moveTo(r * 0.3, -r * 0.42);
+  ctx.quadraticCurveTo(r * 0.4 + snout, -r * 0.22, r * 0.4 + snout, 0);
+  ctx.quadraticCurveTo(r * 0.4 + snout, r * 0.22, r * 0.3, r * 0.42);
+  ctx.closePath();
+  ctx.fill();
+  // Augenhöhlen
+  ctx.fillStyle = "#3a352c";
+  ctx.beginPath();
+  ctx.ellipse(-r * 0.1, -r * 0.4, r * 0.26, r * 0.22, -0.3, 0, Math.PI * 2);
+  ctx.ellipse(-r * 0.1, r * 0.4, r * 0.26, r * 0.22, 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  // Zähne
+  ctx.fillStyle = "#fffaf0";
+  for (let i = 0; i < 4; i++) {
+    const tx = r * 0.45 + (i / 4) * Math.max(2, snout);
+    ctx.fillRect(tx, -0.9, 1.1, 1.8);
+  }
+}
+
+export function drawSkeleton(
+  ctx: CanvasRenderingContext2D,
+  def: AnimalDef,
+  p: Pose,
+) {
+  const b = def.body;
+  const hl = b.len / 2;
+  ctx.globalAlpha = p.alpha;
+  if (b.form === "snake") {
+    ctx.strokeStyle = "#efeadc";
+    ctx.lineWidth = 1.6;
+    for (let i = 0; i < 26; i++) {
+      const t = i / 25;
+      const x = -hl + t * b.len;
+      const y = Math.sin(t * 7 + p.phase * 0.1) * b.wid * 0.6;
+      ctx.beginPath();
+      ctx.ellipse(x, y, 2.2, b.wid * 0.28 * (1 - t * 0.5), 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.save();
+    ctx.translate(hl, Math.sin(7 + p.phase * 0.1) * b.wid * 0.6);
+    skull(ctx, b.headR * 0.8, b.snout);
+    ctx.restore();
+    return;
+  }
+
+  // Wirbelsäule
+  bone(ctx, -hl * 0.95 - b.tailLen * 0.9, 0, hl * 0.7, 0, 2.4);
+  // Schwanzwirbel
+  if (b.tailLen > 4) {
+    for (let i = 0; i < 6; i++) {
+      const x = -hl * 0.95 - (i / 5) * b.tailLen * 0.9;
+      ctx.fillStyle = "#e8e2d2";
+      ctx.beginPath();
+      ctx.ellipse(x, 0, 1.6, 1.2, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  // Rippen
+  ctx.strokeStyle = "#efeadc";
+  ctx.lineWidth = 1.5;
+  const ribs = Math.max(5, Math.round(b.len / 8));
+  for (let i = 0; i < ribs; i++) {
+    const x = -hl * 0.5 + (i / (ribs - 1)) * b.len * 0.75;
+    const w = b.wid * 0.5 * Math.sin(0.35 + (i / ribs) * Math.PI * 0.9);
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.quadraticCurveTo(x + 1.5, w * 0.8, x - 0.5, w);
+    ctx.moveTo(x, 0);
+    ctx.quadraticCurveTo(x + 1.5, -w * 0.8, x - 0.5, -w);
+    ctx.stroke();
+  }
+  // Becken & Schultern
+  ctx.strokeStyle = "#e6dfcd";
+  ctx.lineWidth = 2.6;
+  ctx.beginPath();
+  ctx.moveTo(hl * 0.42, -b.wid * 0.42);
+  ctx.lineTo(hl * 0.42, b.wid * 0.42);
+  ctx.moveTo(-hl * 0.72, -b.wid * 0.4);
+  ctx.lineTo(-hl * 0.72, b.wid * 0.4);
+  ctx.stroke();
+  // Beine mit Füßen
+  if (b.legLen > 0) {
+    const legs: Array<[number, number]> = [
+      [hl * 0.42, -b.wid * 0.42],
+      [hl * 0.42, b.wid * 0.42],
+      [-hl * 0.72, -b.wid * 0.4],
+      [-hl * 0.72, b.wid * 0.4],
+    ];
+    legs.forEach(([lx, ly], i) => {
+      const dir = ly < 0 ? -1 : 1;
+      const kx = lx + (i < 2 ? 3 : -3);
+      const ky = ly + dir * b.legLen * 0.45;
+      bone(ctx, lx, ly, kx, ky, 1.7);
+      const fx = kx + (i < 2 ? 2 : -2);
+      const fy = ky + dir * b.legLen * 0.45;
+      bone(ctx, kx, ky, fx, fy, 1.5);
+      // Fuß / Zehen
+      for (let t = -1; t <= 1; t++) {
+        bone(ctx, fx, fy, fx + t * 2 + (i < 2 ? 2.5 : -2.5), fy + dir * 2, 1);
+      }
+    });
+  }
+  // Hals + Schädel
+  bone(ctx, hl * 0.6, 0, hl * 0.88, 0, 2);
+  ctx.save();
+  ctx.translate(hl * 0.95 + b.headR * 0.2, 0);
+  skull(ctx, b.headR, b.snout);
+  ctx.restore();
+}
+
 export function drawCreature(
   ctx: CanvasRenderingContext2D,
   def: AnimalDef,
@@ -428,9 +624,17 @@ export function drawCreature(
   ctx.rotate(p.angle);
   ctx.scale(s, s);
   ctx.globalAlpha = p.alpha;
+  if (p.rolling) {
+    ctx.rotate(p.rolling * Math.PI * 4);
+  }
   if (p.dead) {
     ctx.rotate(1.4);
-    ctx.globalAlpha = p.alpha * 0.75;
+    ctx.globalAlpha = p.alpha * (p.skeleton ? 1 : 0.85);
+  }
+  if (p.skeleton) {
+    drawSkeleton(ctx, def, p);
+    ctx.restore();
+    return;
   }
   if (p.swimming) {
     ctx.save();
@@ -442,6 +646,14 @@ export function drawCreature(
   else if (def.body.form === "frog") drawFrog(ctx, def, p);
   else drawQuad(ctx, def, p);
   if (p.swimming) ctx.restore();
+
+  if (p.dead && (p.decay ?? 0) > 0) {
+    ctx.globalAlpha = Math.min(0.6, (p.decay ?? 0) * 0.6) * p.alpha;
+    ctx.fillStyle = "#5b5346";
+    ellipse(ctx, 0, 0, def.body.len * 0.5, def.body.wid * 0.5);
+    ctx.fill();
+    ctx.globalAlpha = p.alpha;
+  }
 
   if (p.hurt > 0) {
     ctx.globalAlpha = p.hurt * 0.5 * p.alpha;
