@@ -37,7 +37,7 @@ export function Joystick({ onMove }: Props) {
   return (
     <div
       ref={ref}
-      className="relative size-36 touch-none rounded-full border border-hud-border bg-hud/70 backdrop-blur-sm"
+      className="relative flex size-36 touch-none items-center justify-center rounded-full border border-hud-border bg-hud/70 backdrop-blur-sm"
       onPointerDown={(e) => {
         pointer.current = e.pointerId;
         e.currentTarget.setPointerCapture(e.pointerId);
@@ -49,10 +49,10 @@ export function Joystick({ onMove }: Props) {
       onPointerUp={end}
       onPointerCancel={end}
     >
-      <div className="absolute inset-4 rounded-full border border-hud-border/60" />
+      <div className="pointer-events-none absolute inset-4 rounded-full border border-hud-border/60" />
       <div
-        className="absolute left-1/2 top-1/2 size-16 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/80 shadow-lg"
-        style={{ transform: `translate(calc(-50% + ${knob.x}px), calc(-50% + ${knob.y}px))` }}
+        className="pointer-events-none size-16 rounded-full bg-primary/80 shadow-lg"
+        style={{ transform: `translate(${knob.x}px, ${knob.y}px)` }}
       />
     </div>
   );
