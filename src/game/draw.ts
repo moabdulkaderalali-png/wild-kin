@@ -2,6 +2,7 @@
 // Jede Animation nutzt dasselbe Körpermodell -> das Tier sieht in jedem
 // Frame identisch aus, nur Pose/Gliedmaßen ändern sich.
 import type { AnimalDef, BodyPlan } from "./animals";
+import { animalSprite } from "./sprites";
 
 export type Pose = {
   x: number;
@@ -24,7 +25,9 @@ export type Pose = {
   breathe?: number; // Atem-/Idle-Phase
   rolling?: number; // Todesrolle 0..1
   ridden?: boolean; // trägt gerade einen Angreifer auf dem Rücken
+  mouthOpen?: boolean; // Maul offen (Biss / Fähigkeit) -> Action-Sprite
 };
+
 
 function shade(hex: string, amt: number): string {
   const n = parseInt(hex.slice(1), 16);
