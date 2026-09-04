@@ -47,6 +47,7 @@ export function GameShell() {
   const [shopOpen, setShopOpen] = useState(false);
   const [started, setStarted] = useState(false);
   const [sound, setSound] = useState(true);
+  const [sprintOn, setSprintOn] = useState(false);
   const [save, setSave] = useState<ReturnType<typeof loadSave> | null>(null);
 
   useEffect(() => {
@@ -177,10 +178,10 @@ export function GameShell() {
       </div>
 
       {/* Seitliche Buttons */}
-      <div className="absolute right-3 top-28 flex flex-col gap-2">
+      <div className="absolute right-3 top-32 flex flex-col gap-2">
         <button
           onClick={() => setShopOpen(true)}
-          className="rounded-xl border border-hud-border bg-hud/80 px-3 py-2 text-[11px] font-semibold backdrop-blur-sm"
+          className="rounded-xl border border-hud-border bg-hud/75 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide shadow-md backdrop-blur-md active:scale-95"
         >
           SHOP
         </button>
@@ -190,14 +191,14 @@ export function GameShell() {
             setSound(next);
             setAudioEnabled(next);
           }}
-          className="rounded-xl border border-hud-border bg-hud/80 px-3 py-2 text-[11px] font-semibold backdrop-blur-sm"
+          className="rounded-xl border border-hud-border bg-hud/75 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide shadow-md backdrop-blur-md active:scale-95"
         >
           {isAudioEnabled() && sound ? "TON AN" : "TON AUS"}
         </button>
         {hud.attackCount > 1 && (
           <button
             onClick={() => g?.cycleAttack()}
-            className="rounded-xl border border-hud-border bg-hud/80 px-3 py-2 text-[11px] font-semibold backdrop-blur-sm"
+            className="rounded-xl border border-hud-border bg-hud/75 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide shadow-md backdrop-blur-md active:scale-95"
           >
             {hud.attackName}
           </button>
