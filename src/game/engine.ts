@@ -72,7 +72,7 @@ export type Ent = {
   gripId: number | null; // hält dieses Ziel fest (Umschlingen/Todesrolle/Rückensprung)
   gripUntil: number;
   gripDps: number;
-  gripMode: "constrict" | "deathroll" | "pounce" | null;
+  gripMode: "constrict" | "carry" | "pounce" | null;
   heldUntil: number; // wird gerade festgehalten
   rollUntil: number;
 };
@@ -399,12 +399,9 @@ export class Game {
         if (t) this.startGrip(e, t, sp.power ?? 25, sp.duration, "constrict");
         break;
       }
-      case "deathroll": {
-        const t = this.nearestFoe(e, 90);
-        if (t) {
-          this.startGrip(e, t, sp.power ?? 30, sp.duration, "deathroll");
-          e.rollUntil = this.time + sp.duration;
-        }
+      case "carry": {
+        const t = this.nearestFoe(e, 100);
+        if (t) this.startGrip(e, t, sp.power ?? 30, sp.duration, "carry");
         break;
       }
       case "spin":
@@ -467,7 +464,7 @@ export class Game {
     t: Ent,
     dps: number,
     dur: number,
-    mode: "constrict" | "deathroll" | "pounce",
+    mode: "constrict" | "carry" | "pounce",
   ) {
     e.gripId = t.id;
     e.gripUntil = this.time + dur;
@@ -509,14 +506,13 @@ export class Game {
       t.heldUntil = Math.max(t.heldUntil, this.time + 0.2);
       t.x += (e.x - t.x) * Math.min(1, dt * 6);
       t.y += (e.y - t.y) * Math.min(1, dt * 6);
-      if (e.gripMode === "deathroll") {
-        // Beute Richtung Wasser ziehen
-        const w = this.waterDirection(e.x, e.y);
-        if (w !== null) {
-          const v = 60 * dt;
-          e.x += Math.cos(w) * v;
-          e.y += Math.sin(w) * v;
-        }
+      if (e.gripMode === "carry") {
+        // Beute steckt im Maul und wird mitgeschleppt
+        const mx = e.x + Math.cos(e.angle) * e.def.body.len * 0.55 * e.def.scale;
+        const my = e.y + Math.sin(e.angle) * e.def.body.len * 0.55 * e.def.scale;
+        t.x += (mx - t.x) * Math.min(1, dt * 10);
+        t.y += (my - t.y) * Math.min(1, dt * 10);
+        t.angle = e.angle;
       }
     }
   }
