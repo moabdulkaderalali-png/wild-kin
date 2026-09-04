@@ -47,6 +47,7 @@ export function GameShell() {
   const [shopOpen, setShopOpen] = useState(false);
   const [started, setStarted] = useState(false);
   const [sound, setSound] = useState(true);
+  const [sprintOn, setSprintOn] = useState(false);
   const [save, setSave] = useState<ReturnType<typeof loadSave> | null>(null);
 
   useEffect(() => {
@@ -177,10 +178,10 @@ export function GameShell() {
       </div>
 
       {/* Seitliche Buttons */}
-      <div className="absolute right-3 top-28 flex flex-col gap-2">
+      <div className="absolute right-3 top-32 flex flex-col gap-2">
         <button
           onClick={() => setShopOpen(true)}
-          className="rounded-xl border border-hud-border bg-hud/80 px-3 py-2 text-[11px] font-semibold backdrop-blur-sm"
+          className="rounded-xl border border-hud-border bg-hud/75 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide shadow-md backdrop-blur-md active:scale-95"
         >
           SHOP
         </button>
@@ -190,14 +191,14 @@ export function GameShell() {
             setSound(next);
             setAudioEnabled(next);
           }}
-          className="rounded-xl border border-hud-border bg-hud/80 px-3 py-2 text-[11px] font-semibold backdrop-blur-sm"
+          className="rounded-xl border border-hud-border bg-hud/75 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide shadow-md backdrop-blur-md active:scale-95"
         >
           {isAudioEnabled() && sound ? "TON AN" : "TON AUS"}
         </button>
         {hud.attackCount > 1 && (
           <button
             onClick={() => g?.cycleAttack()}
-            className="rounded-xl border border-hud-border bg-hud/80 px-3 py-2 text-[11px] font-semibold backdrop-blur-sm"
+            className="rounded-xl border border-hud-border bg-hud/75 px-3 py-2 text-[10px] font-semibold uppercase tracking-wide shadow-md backdrop-blur-md active:scale-95"
           >
             {hud.attackName}
           </button>
@@ -206,51 +207,55 @@ export function GameShell() {
 
       {/* Steuerung */}
       <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-4 pb-8">
-        <div className="flex flex-col items-center gap-3">
-          <Joystick onMove={(x, y) => g?.setMove(x, y)} />
+        <Joystick onMove={(x, y) => g?.setMove(x, y)} />
+        <div className="flex flex-col items-end gap-3">
           <button
-            onPointerDown={() => g?.setSprint(true)}
-            onPointerUp={() => g?.setSprint(false)}
-            onPointerCancel={() => g?.setSprint(false)}
-            onPointerLeave={() => g?.setSprint(false)}
-            className={`relative size-16 overflow-hidden rounded-full border border-hud-border text-[10px] font-bold backdrop-blur-sm active:scale-95 ${
-              hud.sprinting ? "bg-special/80 text-primary-foreground" : "bg-hud/80"
+            onClick={() => {
+              const next = !sprintOn;
+              setSprintOn(next);
+              g?.setSprint(next);
+            }}
+            className={`relative size-16 overflow-hidden rounded-full border text-[10px] font-bold uppercase tracking-wide backdrop-blur-md transition-colors active:scale-95 ${
+              sprintOn
+                ? "border-special bg-special/85 text-primary-foreground"
+                : "border-hud-border bg-hud/80 text-foreground"
             }`}
           >
-            <span className="relative z-10">SPRINT</span>
+            <span className="relative z-10">Sprint</span>
             <span
-              className="absolute inset-x-0 bottom-0 bg-special/40"
+              className="absolute inset-x-0 bottom-0 bg-special/35"
               style={{ height: `${Math.round(hud.stamina * 100)}%` }}
             />
           </button>
-        </div>
-        <div className="flex items-end gap-3">
-          <button
-            onPointerDown={() => g?.pressSpecial()}
-            className="relative size-20 overflow-hidden rounded-full border border-hud-border bg-special/80 text-[11px] font-bold text-primary-foreground backdrop-blur-sm active:scale-95"
-          >
-            <span className="relative z-10 block leading-tight">
-              SPECIAL
-              <br />
-              {hud.specialReady > 0 ? Math.ceil(hud.specialReady) : "BEREIT"}
-            </span>
-            <span
-              className="absolute inset-x-0 bottom-0 bg-foreground/20"
-              style={{ height: `${100 - specialPct}%` }}
-            />
-          </button>
-          <button
-            onPointerDown={() => g?.pressAttack()}
-            className="relative size-24 overflow-hidden rounded-full border border-hud-border bg-danger/85 text-xs font-bold text-primary-foreground backdrop-blur-sm active:scale-95"
-          >
-            <span className="relative z-10">ATTACK</span>
-            <span
-              className="absolute inset-x-0 bottom-0 bg-foreground/25"
-              style={{ height: `${Math.min(100, (hud.attackReady / 0.5) * 100)}%` }}
-            />
-          </button>
+          <div className="flex items-end gap-3">
+            <button
+              onPointerDown={() => g?.pressSpecial()}
+              className="relative size-[68px] overflow-hidden rounded-full border border-hud-border bg-special/85 text-[10px] font-bold uppercase text-primary-foreground shadow-lg backdrop-blur-md active:scale-95"
+            >
+              <span className="relative z-10 block leading-tight">
+                Spezial
+                <br />
+                {hud.specialReady > 0 ? Math.ceil(hud.specialReady) : "bereit"}
+              </span>
+              <span
+                className="absolute inset-x-0 bottom-0 bg-foreground/25"
+                style={{ height: `${100 - specialPct}%` }}
+              />
+            </button>
+            <button
+              onPointerDown={() => g?.pressAttack()}
+              className="relative size-24 overflow-hidden rounded-full border border-hud-border bg-danger/90 text-xs font-black uppercase tracking-wide text-primary-foreground shadow-xl backdrop-blur-md active:scale-95"
+            >
+              <span className="relative z-10">Attack</span>
+              <span
+                className="absolute inset-x-0 bottom-0 bg-foreground/25"
+                style={{ height: `${Math.min(100, (hud.attackReady / 0.5) * 100)}%` }}
+              />
+            </button>
+          </div>
         </div>
       </div>
+
 
       {hud.dead && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-background/85 backdrop-blur">

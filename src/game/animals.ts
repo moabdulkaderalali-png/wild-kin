@@ -27,7 +27,7 @@ export type SpecialKind =
   | "ambush"
   | "spin"
   | "constrict"
-  | "deathroll"
+  | "carry"
   | "pounce";
 
 export type SpecialDef = {
@@ -774,12 +774,12 @@ export const ANIMALS: AnimalDef[] = [
       },
     ],
     special: {
-      name: "Todesrolle",
-      kind: "deathroll",
+      name: "Todesgriff",
+      kind: "carry",
       cooldown: 20,
       duration: 7,
       power: 30,
-      desc: "Schnappt das Opfer, rollt 7 s lang (30 Schaden/s) und zieht es ins Wasser.",
+      desc: "Packt die Beute ins Maul, schleppt sie 7 s lang mit (30 Schaden/s) – auch ins Wasser.",
     },
     biomes: ["river", "lake", "swamp", "jungle"],
     diet: "carnivore",

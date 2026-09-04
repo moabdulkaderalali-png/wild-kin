@@ -72,7 +72,7 @@ export type Ent = {
   gripId: number | null; // hält dieses Ziel fest (Umschlingen/Todesrolle/Rückensprung)
   gripUntil: number;
   gripDps: number;
-  gripMode: "constrict" | "deathroll" | "pounce" | null;
+  gripMode: "constrict" | "carry" | "pounce" | null;
   heldUntil: number; // wird gerade festgehalten
   rollUntil: number;
 };
@@ -151,6 +151,15 @@ function dist2(ax: number, ay: number, bx: number, by: number) {
   const dx = ax - bx;
   const dy = ay - by;
   return dx * dx + dy * dy;
+}
+
+/** Großes Tier? Große Fleischfresser jagen nur solche Beute. */
+function isBig(d: { hp: number; scale: number }) {
+  return d.hp >= 300 || d.scale >= 1.3;
+}
+/** Jagt aktiv von sich aus (nur große Fleischfresser). */
+function isHunter(d: { hp: number; scale: number; diet: string }) {
+  return d.diet === "carnivore" && isBig(d);
 }
 
 function power(e: Ent) {
@@ -257,7 +266,7 @@ export class Game {
       lastSound: 0,
       lastStep: 0,
       engagedUntil: 0,
-      peaceful: !isPlayer && Math.random() < 0.4,
+      peaceful: !isPlayer && !isHunter(def),
       skeleton: false,
       stamina: 1,
       sprinting: false,
@@ -399,12 +408,9 @@ export class Game {
         if (t) this.startGrip(e, t, sp.power ?? 25, sp.duration, "constrict");
         break;
       }
-      case "deathroll": {
-        const t = this.nearestFoe(e, 90);
-        if (t) {
-          this.startGrip(e, t, sp.power ?? 30, sp.duration, "deathroll");
-          e.rollUntil = this.time + sp.duration;
-        }
+      case "carry": {
+        const t = this.nearestFoe(e, 100);
+        if (t) this.startGrip(e, t, sp.power ?? 30, sp.duration, "carry");
         break;
       }
       case "spin":
@@ -467,7 +473,7 @@ export class Game {
     t: Ent,
     dps: number,
     dur: number,
-    mode: "constrict" | "deathroll" | "pounce",
+    mode: "constrict" | "carry" | "pounce",
   ) {
     e.gripId = t.id;
     e.gripUntil = this.time + dur;
@@ -509,14 +515,13 @@ export class Game {
       t.heldUntil = Math.max(t.heldUntil, this.time + 0.2);
       t.x += (e.x - t.x) * Math.min(1, dt * 6);
       t.y += (e.y - t.y) * Math.min(1, dt * 6);
-      if (e.gripMode === "deathroll") {
-        // Beute Richtung Wasser ziehen
-        const w = this.waterDirection(e.x, e.y);
-        if (w !== null) {
-          const v = 60 * dt;
-          e.x += Math.cos(w) * v;
-          e.y += Math.sin(w) * v;
-        }
+      if (e.gripMode === "carry") {
+        // Beute steckt im Maul und wird mitgeschleppt
+        const mx = e.x + Math.cos(e.angle) * e.def.body.len * 0.55 * e.def.scale;
+        const my = e.y + Math.sin(e.angle) * e.def.body.len * 0.55 * e.def.scale;
+        t.x += (mx - t.x) * Math.min(1, dt * 10);
+        t.y += (my - t.y) * Math.min(1, dt * 10);
+        t.angle = e.angle;
       }
     }
   }
@@ -1053,13 +1058,14 @@ export class Game {
         }
       }
     }
-    if (foe === this.player && !e.peaceful && e.def.diet === "carnivore") {
+    if (foe === this.player && !e.peaceful && isHunter(e.def)) {
       // nächstes schwächeres NPC als Beute suchen
       let best: Ent | null = null;
       let bd = 340 * 340;
       for (const o of this.ents) {
         if (o === e || o.dead || o.invisibleUntil > this.time) continue;
         if (power(o) > power(e) * 0.9) continue;
+        if (!isBig(o.def)) continue; // große Jäger reißen nur große Tiere
         const d = dist2(e.x, e.y, o.x, o.y);
         if (d < bd) {
           bd = d;
@@ -1091,7 +1097,8 @@ export class Game {
       const hunts =
         playerVisible &&
         dToPlayer < 320 &&
-        e.def.diet === "carnivore" &&
+        isHunter(e.def) &&
+        (isBig(foe.def) || e.engagedUntil > this.time) &&
         myPower > foePower * 0.85 &&
         (!e.peaceful || e.engagedUntil > this.time) &&
         (e.hunger > 0.35 || e.engagedUntil > this.time || foe !== this.player);
@@ -1408,9 +1415,14 @@ export class Game {
       resting: e.state === "rest",
       skeleton: e.skeleton,
       decay: e.dead ? Math.min(1, (this.time - e.deadAt) / 30) : 0,
-      rolling: e.rollUntil > this.time ? (this.time % 1) : 0,
+      rolling: 0,
       ridden: e.heldUntil > this.time,
+      mouthOpen:
+        !e.dead &&
+        ((e.attack !== null && e.attack.t > 0.12 && e.attack.t < 0.75) ||
+          (e.gripId !== null && e.gripUntil > this.time)),
     };
+
     drawCreature(ctx, e.def, pose);
     if (s.water && !e.dead) {
       ctx.strokeStyle = "rgba(255,255,255,0.35)";
