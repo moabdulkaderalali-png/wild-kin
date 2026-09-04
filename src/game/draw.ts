@@ -639,6 +639,26 @@ export function drawCreature(
     ctx.restore();
     return;
   }
+  // KI-Sprite (Vogelperspektive), falls vorhanden
+  const sprite = animalSprite(def.id, Boolean(p.mouthOpen));
+  if (sprite) {
+    const w = def.body.len * 1.28;
+    const h = (w * sprite.naturalHeight) / sprite.naturalWidth;
+    const bob = p.dead ? 0 : Math.sin(p.phase) * 0.04 * p.speed01;
+    ctx.save();
+    ctx.scale(1 + bob, 1 - bob);
+    ctx.drawImage(sprite, -w / 2, -h / 2, w, h);
+    ctx.restore();
+    if (p.hurt > 0) {
+      ctx.globalAlpha = p.hurt * 0.45 * p.alpha;
+      ctx.fillStyle = "#ff3b30";
+      ellipse(ctx, 0, 0, def.body.len * 0.55, def.body.wid * 0.6);
+      ctx.fill();
+    }
+    ctx.restore();
+    return;
+  }
+
   if (p.swimming) {
     ctx.save();
     ctx.beginPath();
