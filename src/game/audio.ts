@@ -92,8 +92,14 @@ export const sfx = {
     tone(v.freq, v.dur, v.type, 0.18, v.wobble);
   },
   bite() {
-    noiseBurst(0.09, 1600, 1.4, 0.25);
-    tone(120, 0.09, "square", 0.12, 40);
+    // feuchtes "Quatsch" – Schmatzen plus dumpfer Kieferschlag
+    noiseBurst(0.06, 2200, 3, 0.16);
+    noiseBurst(0.16, 620, 0.7, 0.26);
+    tone(190, 0.08, "sawtooth", 0.14, -110);
+    setTimeout(() => {
+      noiseBurst(0.1, 380, 0.6, 0.18);
+      tone(95, 0.12, "square", 0.12, -40);
+    }, 55);
   },
   paw() {
     noiseBurst(0.07, 2600, 2, 0.18);

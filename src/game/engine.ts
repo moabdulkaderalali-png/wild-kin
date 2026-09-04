@@ -153,6 +153,15 @@ function dist2(ax: number, ay: number, bx: number, by: number) {
   return dx * dx + dy * dy;
 }
 
+/** Großes Tier? Große Fleischfresser jagen nur solche Beute. */
+function isBig(d: { hp: number; scale: number }) {
+  return d.hp >= 300 || d.scale >= 1.3;
+}
+/** Jagt aktiv von sich aus (nur große Fleischfresser). */
+function isHunter(d: { hp: number; scale: number; diet: string }) {
+  return d.diet === "carnivore" && isBig(d);
+}
+
 function power(e: Ent) {
   const dmg = Math.max(...e.def.attacks.map((a) => a.damage));
   return e.maxHp * 0.5 + dmg * 6 + e.def.speed;
@@ -257,7 +266,7 @@ export class Game {
       lastSound: 0,
       lastStep: 0,
       engagedUntil: 0,
-      peaceful: !isPlayer && Math.random() < 0.4,
+      peaceful: !isPlayer && !isHunter(def),
       skeleton: false,
       stamina: 1,
       sprinting: false,
@@ -1049,13 +1058,14 @@ export class Game {
         }
       }
     }
-    if (foe === this.player && !e.peaceful && e.def.diet === "carnivore") {
+    if (foe === this.player && !e.peaceful && isHunter(e.def)) {
       // nächstes schwächeres NPC als Beute suchen
       let best: Ent | null = null;
       let bd = 340 * 340;
       for (const o of this.ents) {
         if (o === e || o.dead || o.invisibleUntil > this.time) continue;
         if (power(o) > power(e) * 0.9) continue;
+        if (!isBig(o.def)) continue; // große Jäger reißen nur große Tiere
         const d = dist2(e.x, e.y, o.x, o.y);
         if (d < bd) {
           bd = d;
@@ -1087,7 +1097,8 @@ export class Game {
       const hunts =
         playerVisible &&
         dToPlayer < 320 &&
-        e.def.diet === "carnivore" &&
+        isHunter(e.def) &&
+        (isBig(foe.def) || e.engagedUntil > this.time) &&
         myPower > foePower * 0.85 &&
         (!e.peaceful || e.engagedUntil > this.time) &&
         (e.hunger > 0.35 || e.engagedUntil > this.time || foe !== this.player);
