@@ -1408,9 +1408,14 @@ export class Game {
       resting: e.state === "rest",
       skeleton: e.skeleton,
       decay: e.dead ? Math.min(1, (this.time - e.deadAt) / 30) : 0,
-      rolling: e.rollUntil > this.time ? (this.time % 1) : 0,
+      rolling: 0,
       ridden: e.heldUntil > this.time,
+      mouthOpen:
+        !e.dead &&
+        ((e.attack !== null && e.attack.t > 0.12 && e.attack.t < 0.75) ||
+          (e.gripId !== null && e.gripUntil > this.time)),
     };
+
     drawCreature(ctx, e.def, pose);
     if (s.water && !e.dead) {
       ctx.strokeStyle = "rgba(255,255,255,0.35)";
