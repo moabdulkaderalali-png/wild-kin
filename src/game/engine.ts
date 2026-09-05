@@ -851,6 +851,9 @@ export class Game {
     }
     p.hunger = Math.min(1, p.hunger + dt * (inWater ? 0.015 : 0.01));
     if (p.hunger > 0.9) p.hp -= dt * 1.5;
+    // Gut gesättigt (>50 % Sättigung) → regeneriert 3 % Leben pro Sekunde
+    else if (p.hunger < 0.5 && p.hp > 0) p.hp = Math.min(p.maxHp, p.hp + dt * p.maxHp * 0.03);
+
     if (p.hp <= 0 && !p.dead) {
       p.dead = true;
       p.deadAt = this.time;
