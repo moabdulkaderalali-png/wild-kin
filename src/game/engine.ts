@@ -65,6 +65,7 @@ export type Ent = {
   lastSound: number;
   lastStep: number;
   engagedUntil: number;
+  lastCombatAt: number; // Heilung erst 10 s nach dem letzten Kampfkontakt
   peaceful: boolean; // greift nur an, wenn es selbst angegriffen wurde
   skeleton: boolean;
   stamina: number; // 0..1
@@ -266,6 +267,7 @@ export class Game {
       lastSound: 0,
       lastStep: 0,
       engagedUntil: 0,
+      lastCombatAt: -Infinity,
       peaceful: !isPlayer && !isHunter(def),
       skeleton: false,
       stamina: 1,
@@ -851,8 +853,9 @@ export class Game {
     }
     p.hunger = Math.min(1, p.hunger + dt * (inWater ? 0.015 : 0.01));
     if (p.hunger > 0.9) p.hp -= dt * 1.5;
-    // Gut gesättigt (>50 % Sättigung) → regeneriert 3 % Leben pro Sekunde
-    else if (p.hunger < 0.5 && p.hp > 0) p.hp = Math.min(p.maxHp, p.hp + dt * p.maxHp * 0.03);
+    // Gut gesättigt und seit 10 s kampffrei → 2 % maximales Leben pro Sekunde.
+    else if (p.hunger < 0.5 && this.time - p.lastCombatAt >= 10 && p.hp > 0)
+      p.hp = Math.min(p.maxHp, p.hp + dt * p.maxHp * 0.02);
 
     if (p.hp <= 0 && !p.dead) {
       p.dead = true;
@@ -1010,6 +1013,8 @@ export class Game {
     target.hp -= dmg;
     target.hurt = 1;
     target.engagedUntil = this.time + 6;
+    target.lastCombatAt = this.time;
+    source.lastCombatAt = this.time;
     target.invisibleUntil = 0;
     if (!target.isPlayer) {
       target.targetId = source.id;
@@ -1085,6 +1090,8 @@ export class Game {
     this.applyDots(e, step);
     e.hurt = Math.max(0, e.hurt - step * 3);
     e.hunger = Math.min(1, e.hunger + step * (sample(e.x, e.y).water ? 0.015 : 0.01));
+    if (e.hunger < 0.5 && this.time - e.lastCombatAt >= 10 && e.hp > 0)
+      e.hp = Math.min(e.maxHp, e.hp + step * e.maxHp * 0.02);
 
     this.updateGrip(e, step);
     e.stamina = Math.min(1, e.stamina + step * 0.1);
