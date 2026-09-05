@@ -851,6 +851,9 @@ export class Game {
     }
     p.hunger = Math.min(1, p.hunger + dt * (inWater ? 0.015 : 0.01));
     if (p.hunger > 0.9) p.hp -= dt * 1.5;
+    // Gut gesättigt (>50 % Sättigung) → regeneriert 3 % Leben pro Sekunde
+    else if (p.hunger < 0.5 && p.hp > 0) p.hp = Math.min(p.maxHp, p.hp + dt * p.maxHp * 0.03);
+
     if (p.hp <= 0 && !p.dead) {
       p.dead = true;
       p.deadAt = this.time;
@@ -953,8 +956,52 @@ export class Game {
         this.damage(attacker, t.def.special.power ?? 8, t, null);
       }
     }
+    const ate = this.biteCorpse(attacker, atk, baseAngle);
+    if (hitAny || ate) {
+      // Jeder Treffer sättigt um 10 %
+      attacker.hunger = Math.max(0, attacker.hunger - 0.1);
+    }
     if (hitAny) sfx.hit();
   }
+
+  /** Fleischfresser fressen beim Biss gleichzeitig an frischen Kadavern. */
+  private biteCorpse(attacker: Ent, atk: AttackDef, baseAngle: number): boolean {
+    if (attacker.def.diet === "herbivore" || attacker.def.diet === "insectivore") return false;
+    for (const t of this.ents) {
+      if (t === attacker || !t.dead || t.skeleton) continue;
+      if (this.time - t.deadAt > 30) continue;
+      const reach = atk.range + t.def.body.len * 0.35 * t.def.scale;
+      if (dist2(t.x, t.y, attacker.x, attacker.y) > reach * reach) continue;
+      const a = Math.atan2(t.y - attacker.y, t.x - attacker.x);
+      if (Math.abs(this.angDiff(a, baseAngle)) > atk.arc + 0.3) continue;
+      attacker.hunger = Math.max(0, attacker.hunger - 0.25);
+      attacker.hp = Math.min(attacker.maxHp, attacker.hp + attacker.maxHp * 0.04);
+      sfx.bite();
+      if (attacker.isPlayer) {
+        this.floats.push({
+          x: attacker.x,
+          y: attacker.y - 24,
+          text: "Gefressen",
+          life: 0.9,
+          color: "#b6e58a",
+        });
+      }
+      for (let i = 0; i < 4; i++)
+        this.particles.push({
+          x: t.x,
+          y: t.y,
+          vx: (Math.random() - 0.5) * 70,
+          vy: (Math.random() - 0.5) * 70,
+          life: 0.5,
+          max: 0.5,
+          color: "rgba(170,50,45,0.75)",
+          size: 2.5,
+        });
+      return true;
+    }
+    return false;
+  }
+
 
   private damage(target: Ent, amount: number, source: Ent, atk: AttackDef | null) {
     if (target.dead) return;
