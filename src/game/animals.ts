@@ -120,7 +120,7 @@ export const ANIMALS: AnimalDef[] = [
     },
     biomes: ["swamp", "river", "lake", "jungle"],
     diet: "insectivore",
-    scale: 0.6,
+    scale: 0.42,
     aquatic: true,
     bounty: 10,
     body: {
@@ -160,7 +160,7 @@ export const ANIMALS: AnimalDef[] = [
     },
     biomes: ["forest", "grass", "savanna"],
     diet: "herbivore",
-    scale: 0.45,
+    scale: 0.46,
     bounty: 10,
     body: {
       len: 22,
@@ -211,7 +211,7 @@ export const ANIMALS: AnimalDef[] = [
     },
     biomes: ["grass", "forest", "savanna"],
     diet: "carnivore",
-    scale: 0.8,
+    scale: 0.7,
     climber: true,
     bounty: 25,
     body: {
@@ -251,7 +251,7 @@ export const ANIMALS: AnimalDef[] = [
     },
     biomes: ["forest", "grass"],
     diet: "insectivore",
-    scale: 0.6,
+    scale: 0.66,
     bounty: 30,
     body: {
       len: 28,
@@ -291,7 +291,7 @@ export const ANIMALS: AnimalDef[] = [
     },
     biomes: ["forest", "grass", "snow"],
     diet: "carnivore",
-    scale: 0.9,
+    scale: 0.77,
     bounty: 45,
     body: {
       len: 46,
@@ -343,7 +343,7 @@ export const ANIMALS: AnimalDef[] = [
     },
     biomes: ["river", "lake", "forest"],
     diet: "carnivore",
-    scale: 0.85,
+    scale: 0.83,
     aquatic: true,
     fastSwimmer: true,
     bounty: 70,
@@ -407,7 +407,7 @@ export const ANIMALS: AnimalDef[] = [
     },
     biomes: ["mountain", "grass", "savanna"],
     diet: "herbivore",
-    scale: 1,
+    scale: 0.96,
     climber: true,
     bounty: 90,
     body: {
@@ -453,7 +453,7 @@ export const ANIMALS: AnimalDef[] = [
     },
     biomes: ["desert", "savanna", "jungle"],
     diet: "carnivore",
-    scale: 0.9,
+    scale: 0.77,
     bounty: 110,
     body: {
       len: 70,
@@ -492,7 +492,7 @@ export const ANIMALS: AnimalDef[] = [
     },
     biomes: ["forest", "snow", "grass"],
     diet: "carnivore",
-    scale: 1.1,
+    scale: 0.86,
     bounty: 140,
     body: {
       len: 60,
@@ -531,7 +531,7 @@ export const ANIMALS: AnimalDef[] = [
     },
     biomes: ["desert", "savanna"],
     diet: "carnivore",
-    scale: 1.15,
+    scale: 0.8,
     bounty: 200,
     body: {
       len: 62,
@@ -585,7 +585,7 @@ export const ANIMALS: AnimalDef[] = [
     },
     biomes: ["jungle", "savanna"],
     diet: "carnivore",
-    scale: 1.2,
+    scale: 1.04,
     bounty: 260,
     body: {
       len: 70,
@@ -636,7 +636,7 @@ export const ANIMALS: AnimalDef[] = [
     },
     biomes: ["jungle", "savanna", "forest"],
     diet: "carnivore",
-    scale: 1.2,
+    scale: 0.85,
     climber: true,
     bounty: 300,
     body: {
@@ -688,7 +688,7 @@ export const ANIMALS: AnimalDef[] = [
     },
     biomes: ["savanna", "grass"],
     diet: "carnivore",
-    scale: 1.15,
+    scale: 0.78,
     bounty: 300,
     body: {
       len: 64,
@@ -728,7 +728,7 @@ export const ANIMALS: AnimalDef[] = [
     },
     biomes: ["river", "lake", "swamp", "jungle"],
     diet: "carnivore",
-    scale: 1.35,
+    scale: 0.8,
     aquatic: true,
     fastSwimmer: true,
     bounty: 420,
@@ -783,7 +783,7 @@ export const ANIMALS: AnimalDef[] = [
     },
     biomes: ["river", "lake", "swamp", "jungle"],
     diet: "carnivore",
-    scale: 1.45,
+    scale: 1.09,
     aquatic: true,
     fastSwimmer: true,
     bounty: 700,
