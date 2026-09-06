@@ -29,8 +29,15 @@ function load(name: string): HTMLImageElement | null {
 }
 
 /** Sprite für ein Tier; `action` = Maul offen / Fähigkeit. */
-export function animalSprite(id: string, action: boolean): HTMLImageElement | null {
-  const img = (action ? load(`${id}-action`) : null) ?? load(id);
+export function animalSprite(
+  id: string,
+  action: boolean,
+  variant?: string | null,
+): HTMLImageElement | null {
+  const img =
+    (variant ? load(`${id}-${variant}`) : null) ??
+    (action ? load(`${id}-action`) : null) ??
+    load(id);
   return img && img.complete && img.naturalWidth > 0 ? img : null;
 }
 
