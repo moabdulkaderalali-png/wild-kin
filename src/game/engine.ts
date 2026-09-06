@@ -1259,11 +1259,7 @@ export class Game {
       case "attack": {
         desired = Math.atan2(foe.y - e.y, foe.x - e.x);
         speedScale = 0.2;
-        // Bei mehreren Angriffen (z. B. Polarbär: Biss + Pfotenschlag) zufällig wechseln
-        const atk =
-          e.def.attacks.length > 1
-            ? e.def.attacks[Math.floor(Math.random() * e.def.attacks.length)]!
-            : e.def.attacks[0]!;
+        const atk = e.def.attacks[0]!;
         if (this.time > e.atkReady && !e.attack && dToPlayer < atk.range + 16) {
           e.attack = { def: atk, t: 0, dur: 0.34, hit: false };
           e.atkReady = this.time + atk.cooldown + 0.4;
