@@ -117,7 +117,14 @@ export function sample(x: number, y: number): Sample {
   // Flüsse: Ridged Noise
   const r = fbm(x * 0.00013 + 900, y * 0.00013 - 700, 4, 4242);
   const ridge = Math.abs(r - 0.5);
-  if (ridge < 0.0075 && e < 0.72)
+  if (ridge < 0.026 && e < 0.74)
+    return { biome: "river", water: true, elevation: e, moisture: 1, depth: 0.5 };
+  // zweites, dichteres Flussnetz
+  const r2 = fbm(x * 0.00019 - 480, y * 0.00019 + 260, 4, 5151);
+  if (Math.abs(r2 - 0.5) < 0.02 && e < 0.74)
+    return { biome: "river", water: true, elevation: e, moisture: 1, depth: 0.5 };
+  const r3 = fbm(x * 0.00009 + 120, y * 0.00009 - 330, 3, 6060);
+  if (Math.abs(r3 - 0.5) < 0.03 && e < 0.7)
     return { biome: "river", water: true, elevation: e, moisture: 1, depth: 0.5 };
 
   // Seen
@@ -347,16 +354,16 @@ export function generateProps(cx: number, cy: number): Prop[] {
 export const SPAWN_TABLE: Record<Biome, string[]> = {
   deep: [],
   ocean: [],
-  ice: ["penguin"],
+  ice: ["penguin", "polarbear"],
   beach: ["frog", "rabbit"],
-  river: ["frog", "otter", "anaconda", "crocodile"],
-  lake: ["frog", "otter", "crocodile"],
-  swamp: ["frog", "snake", "otter", "anaconda", "crocodile"],
+  river: ["frog", "otter", "anaconda", "crocodile", "hippo"],
+  lake: ["frog", "otter", "crocodile", "hippo"],
+  swamp: ["frog", "snake", "otter", "anaconda", "crocodile", "hippo"],
   desert: ["snake", "hyena", "camel"],
-  savanna: ["hyena", "cheetah", "zebra", "snake", "leopard", "goat"],
+  savanna: ["hyena", "cheetah", "zebra", "snake", "leopard", "goat", "elephant"],
   grass: ["mouse", "rabbit", "cat", "deer", "goat", "wolf", "cheetah"],
   forest: ["mouse", "rabbit", "hedgehog", "fox", "deer", "wolf", "cat", "leopard"],
-  jungle: ["leopard", "komodo", "snake", "frog", "anaconda", "crocodile"],
-  snow: ["wolf", "fox", "penguin"],
+  jungle: ["leopard", "komodo", "snake", "frog", "anaconda", "crocodile", "elephant"],
+  snow: ["wolf", "fox", "penguin", "polarbear"],
   mountain: ["goat", "wolf"],
 };

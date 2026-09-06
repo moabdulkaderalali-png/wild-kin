@@ -405,6 +405,29 @@ export class Game {
         sfx.jump();
         break;
       }
+      case "charge": {
+        e.jumpUntil = this.time + sp.duration;
+        e.jumpDur = sp.duration;
+        e.vx = Math.cos(e.angle) * 620;
+        e.vy = Math.sin(e.angle) * 620;
+        e.attack = {
+          def: {
+            id: "charge",
+            name: sp.name,
+            damage: sp.power ?? 120,
+            cooldown: 0,
+            range: 60,
+            arc: 1.1,
+            anim: "horn",
+            windup: 0.1,
+          },
+          t: 0,
+          dur: sp.duration,
+          hit: false,
+        };
+        sfx.jump();
+        break;
+      }
       case "constrict": {
         const t = this.nearestFoe(e, 90);
         if (t) this.startGrip(e, t, sp.power ?? 25, sp.duration, "constrict");
@@ -768,8 +791,8 @@ export class Game {
     const props = this.propsNear(e.x, e.y);
     const r = e.def.body.len * 0.35 * e.def.scale;
     for (const p of props) {
-      if (!isCanopy(p.type) && p.type !== "rock" && p.type !== "iceBlock") continue;
-      if (e.def.climber && isCanopy(p.type)) continue; // Kletterer nutzen Bäume
+      // Bäume sind durchlässig – nur Felsen und Eisblöcke blockieren
+      if (p.type !== "rock" && p.type !== "iceBlock") continue;
       const dx = e.x - p.x;
       const dy = e.y - p.y;
       const rr = r + p.r * 0.45;
@@ -942,7 +965,7 @@ export class Game {
     let hitAny = false;
     for (const t of targets) {
       if (t === attacker || t.dead) continue;
-      const reach = atk.range + t.def.body.len * 0.3 * t.def.scale;
+      const reach = atk.range + t.def.body.len * 0.7 * t.def.scale + 10;
       if (dist2(t.x, t.y, attacker.x, attacker.y) > reach * reach) continue;
       const a = Math.atan2(t.y - attacker.y, t.x - attacker.x);
       if (Math.abs(this.angDiff(a, baseAngle)) > atk.arc) continue;
@@ -959,12 +982,37 @@ export class Game {
         this.damage(attacker, t.def.special.power ?? 8, t, null);
       }
     }
-    const ate = this.biteCorpse(attacker, atk, baseAngle);
+    const ate = this.biteCorpse(attacker, atk, baseAngle) || this.bitePlant(attacker);
     if (hitAny || ate) {
       // Jeder Treffer sättigt um 10 %
       attacker.hunger = Math.max(0, attacker.hunger - 0.1);
     }
     if (hitAny) sfx.hit();
+  }
+
+  /** Pflanzenfresser fressen beim Zubeißen sofort mit. */
+  private bitePlant(attacker: Ent): boolean {
+    if (attacker.def.diet === "carnivore") return false;
+    const props = this.propsNear(attacker.x, attacker.y);
+    const reach = 30 + attacker.def.body.len * 0.6 * attacker.def.scale;
+    for (const p of props) {
+      if (!p.edible || p.eatenUntil > this.time) continue;
+      if (dist2(p.x, p.y, attacker.x, attacker.y) > reach * reach) continue;
+      p.eatenUntil = this.time + 45;
+      attacker.hunger = Math.max(0, attacker.hunger - 0.3);
+      attacker.hp = Math.min(attacker.maxHp, attacker.hp + attacker.maxHp * 0.03);
+      if (attacker.isPlayer) {
+        this.floats.push({
+          x: attacker.x,
+          y: attacker.y - 24,
+          text: "Gefressen",
+          life: 0.9,
+          color: "#b6e58a",
+        });
+      }
+      return true;
+    }
+    return false;
   }
 
   /** Fleischfresser fressen beim Biss gleichzeitig an frischen Kadavern. */
@@ -973,7 +1021,7 @@ export class Game {
     for (const t of this.ents) {
       if (t === attacker || !t.dead || t.skeleton) continue;
       if (this.time - t.deadAt > 30) continue;
-      const reach = atk.range + t.def.body.len * 0.35 * t.def.scale;
+      const reach = atk.range + t.def.body.len * 0.7 * t.def.scale + 10;
       if (dist2(t.x, t.y, attacker.x, attacker.y) > reach * reach) continue;
       const a = Math.atan2(t.y - attacker.y, t.x - attacker.x);
       if (Math.abs(this.angDiff(a, baseAngle)) > atk.arc + 0.3) continue;

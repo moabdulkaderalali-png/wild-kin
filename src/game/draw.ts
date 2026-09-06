@@ -640,7 +640,8 @@ export function drawCreature(
     return;
   }
   // KI-Sprite (Vogelperspektive), falls vorhanden
-  const sprite = animalSprite(def.id, Boolean(p.mouthOpen));
+  const variant = p.attack && p.attack.t < 0.85 ? p.attack.anim : null;
+  const sprite = animalSprite(def.id, Boolean(p.mouthOpen), variant);
   if (sprite) {
     const w = def.body.len * 1.28;
     const h = (w * sprite.naturalHeight) / sprite.naturalWidth;
