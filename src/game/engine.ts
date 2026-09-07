@@ -73,7 +73,8 @@ export type Ent = {
   gripId: number | null; // hält dieses Ziel fest (Umschlingen/Todesrolle/Rückensprung)
   gripUntil: number;
   gripDps: number;
-  gripMode: "constrict" | "carry" | "pounce" | null;
+  gripMode: "constrict" | "carry" | "pounce" | "squeeze" | null;
+  gripStart: number;
   heldUntil: number; // wird gerade festgehalten
   rollUntil: number;
 };
@@ -276,6 +277,7 @@ export class Game {
       gripUntil: 0,
       gripDps: 0,
       gripMode: null,
+      gripStart: 0,
       heldUntil: 0,
       rollUntil: 0,
     };
@@ -408,8 +410,8 @@ export class Game {
       case "charge": {
         e.jumpUntil = this.time + sp.duration;
         e.jumpDur = sp.duration;
-        e.vx = Math.cos(e.angle) * 620;
-        e.vy = Math.sin(e.angle) * 620;
+        e.vx = Math.cos(e.angle) * (sp.speed ?? 620);
+        e.vy = Math.sin(e.angle) * (sp.speed ?? 620);
         e.attack = {
           def: {
             id: "charge",
@@ -426,6 +428,30 @@ export class Game {
           hit: false,
         };
         sfx.jump();
+        break;
+      }
+      case "squeeze": {
+        const t = this.nearestFoe(e, 120);
+        if (t) this.startGrip(e, t, sp.power ?? 2, sp.duration, "squeeze");
+        break;
+      }
+      case "rearkick": {
+        e.attack = {
+          def: {
+            id: "kick",
+            name: sp.name,
+            damage: sp.power ?? 80,
+            cooldown: 0,
+            range: e.def.attacks[0]!.range + 8,
+            arc: 0.8,
+            rear: true,
+            anim: "kick",
+            windup: 0.12,
+          },
+          t: 0,
+          dur: Math.max(0.4, sp.duration),
+          hit: false,
+        };
         break;
       }
       case "constrict": {
@@ -498,12 +524,13 @@ export class Game {
     t: Ent,
     dps: number,
     dur: number,
-    mode: "constrict" | "carry" | "pounce",
+    mode: "constrict" | "carry" | "pounce" | "squeeze",
   ) {
     e.gripId = t.id;
     e.gripUntil = this.time + dur;
     e.gripDps = dps;
     e.gripMode = mode;
+    e.gripStart = this.time;
     t.heldUntil = mode === "pounce" ? 0 : this.time + dur;
     t.engagedUntil = this.time + dur + 4;
     if (!t.isPlayer) t.targetId = e.id;
@@ -529,8 +556,16 @@ export class Game {
       e.gripMode = null;
       return;
     }
-    this.damage(t, e.gripDps * dt, e, null);
-    if (e.gripMode === "pounce") {
+    const dps =
+      e.gripMode === "squeeze"
+        ? (e.gripDps || 2) * Math.pow(2, Math.floor(this.time - e.gripStart))
+        : e.gripDps;
+    this.damage(t, dps * dt, e, null);
+    if (e.gripMode === "squeeze") {
+      t.heldUntil = Math.max(t.heldUntil, this.time + 0.2);
+      t.x += (e.x - t.x) * Math.min(1, dt * 6);
+      t.y += (e.y - t.y) * Math.min(1, dt * 6);
+    } else if (e.gripMode === "pounce") {
       // reitet auf dem Rücken – bleibt dran
       t.hurt = Math.max(t.hurt, 0.4);
       const a = Math.atan2(t.y - e.y, t.x - e.x);
