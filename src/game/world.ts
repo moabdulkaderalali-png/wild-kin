@@ -272,7 +272,7 @@ export function generateProps(cx: number, cy: number): Prop[] {
     let fruit: Prop["fruit"] | undefined;
     switch (s.biome) {
       case "forest":
-        type = roll < 0.34 ? "tree" : roll < 0.5 ? "pine" : roll < 0.62 ? "bush" : roll < 0.7 ? "berryBush" : roll < 0.78 ? "mushroom" : roll < 0.86 ? "rock" : "grassTuft";
+        type = roll < 0.34 ? "tree" : roll < 0.5 ? "pine" : roll < 0.62 ? "bush" : roll < 0.7 ? "berryBush" : roll < 0.78 ? "mushroom" : roll < 0.82 ? "rock" : "grassTuft";
         if (type === "berryBush") fruit = pickFruit("forest", seed);
         break;
       case "jungle":
@@ -280,7 +280,7 @@ export function generateProps(cx: number, cy: number): Prop[] {
         if (type === "fruit") fruit = pickFruit("jungle", seed);
         break;
       case "savanna":
-        type = roll < 0.2 ? "acacia" : roll < 0.28 ? "bush" : roll < 0.34 ? "fruit" : roll < 0.42 ? "rock" : "grassTuft";
+        type = roll < 0.2 ? "acacia" : roll < 0.28 ? "bush" : roll < 0.34 ? "fruit" : roll < 0.38 ? "rock" : "grassTuft";
         if (type === "fruit") fruit = pickFruit("savanna", seed);
         break;
       case "grass":
@@ -289,7 +289,7 @@ export function generateProps(cx: number, cy: number): Prop[] {
         break;
       case "desert":
         if (roll < 0.14) type = "cactus";
-        else if (roll < 0.22) type = "rock";
+        else if (roll < 0.18) type = "rock";
         else if (roll < 0.3) type = "grassTuft";
         if (type === "cactus" && roll < 0.09) fruit = "cactusFruit";
         else if (type === null && roll < 0.33) {
@@ -298,17 +298,17 @@ export function generateProps(cx: number, cy: number): Prop[] {
         }
         break;
       case "snow":
-        type = roll < 0.22 ? "pine" : roll < 0.4 ? "iceBlock" : roll < 0.5 ? "rock" : null;
+        type = roll < 0.22 ? "pine" : roll < 0.4 ? "iceBlock" : roll < 0.45 ? "rock" : null;
         break;
       case "mountain":
-        type = roll < 0.55 ? "rock" : roll < 0.68 ? "pine" : roll < 0.78 ? "grassTuft" : null;
+        type = roll < 0.28 ? "rock" : roll < 0.68 ? "pine" : roll < 0.78 ? "grassTuft" : null;
         break;
       case "swamp":
         type = roll < 0.38 ? "reed" : roll < 0.52 ? "bush" : roll < 0.62 ? "fruit" : roll < 0.72 ? "mushroom" : roll < 0.82 ? "log" : "grassTuft";
         if (type === "fruit") fruit = pickFruit("swamp", seed);
         break;
       case "beach":
-        type = roll < 0.12 ? "palm" : roll < 0.2 ? "rock" : null;
+        type = roll < 0.12 ? "palm" : roll < 0.16 ? "rock" : null;
         if (type === "palm" && roll < 0.08) fruit = "coconut";
         break;
       default:

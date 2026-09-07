@@ -662,8 +662,8 @@ export class Game {
   }
 
   private spawnChunkLife(cx: number, cy: number) {
-    if (this.ents.length > 46) return;
-    const count = 2 + Math.floor(Math.random() * 3);
+    if (this.ents.length > 110) return;
+    const count = 5 + Math.floor(Math.random() * 4);
     for (let i = 0; i < count; i++) {
       const x = cx * CHUNK + Math.random() * CHUNK;
       const y = cy * CHUNK + Math.random() * CHUNK;
