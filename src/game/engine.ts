@@ -686,6 +686,24 @@ export class Game {
             species: k.name,
           });
         }
+        // Wassertiere leben im Wasser – Krokodile besonders häufig
+        if (Math.random() < 0.75) {
+          const pool = [
+            "crocodile",
+            "crocodile",
+            "crocodile",
+            "crocodile",
+            "anaconda",
+            "titanoboa",
+            "hippo",
+            "otter",
+            "frog",
+            "spinosaurus",
+          ];
+          const wid = pool[Math.floor(Math.random() * pool.length)]!;
+          const wdef = speciesById(wid);
+          if (wdef) this.ents.push(this.makeEnt(wdef, x, y));
+        }
         continue;
       }
       const table = SPAWN_TABLE[s.biome];
@@ -1260,7 +1278,7 @@ export class Game {
         e.stateUntil = this.time + 3;
         e.targetProp =
           this.propsNear(e.x, e.y).find((p) => p.edible && p.eatenUntil < this.time) ?? null;
-      } else if (e.hunger > 0.7) {
+      } else if (e.hunger > 0.55 || Math.random() < 0.18) {
         e.state = "drink";
         e.stateUntil = this.time + 3;
       } else if (Math.random() < 0.12) {
