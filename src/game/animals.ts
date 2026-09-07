@@ -29,7 +29,9 @@ export type SpecialKind =
   | "constrict"
   | "carry"
   | "charge"
-  | "pounce";
+  | "pounce"
+  | "rearkick"
+  | "squeeze";
 
 export type SpecialDef = {
   name: string;
@@ -37,6 +39,7 @@ export type SpecialDef = {
   cooldown: number;
   duration: number;
   power?: number;
+  speed?: number; // px/s bei Ansturm-Fähigkeiten
   desc: string;
 };
 
