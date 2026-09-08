@@ -537,23 +537,50 @@ export class Game {
     if (e.isPlayer) this.targetId = t.id;
   }
 
+  private clearGrip(e: Ent) {
+    if (!e.gripId) return;
+    const t = this.entById(e.gripId);
+    if (t) t.heldUntil = 0;
+    e.gripId = null;
+    e.gripMode = null;
+  }
+
+  private alertNearbyNpcs(target: Ent, source: Ent) {
+    const radius = 220;
+    const radius2 = radius * radius;
+    for (const e of this.ents) {
+      if (e.dead || e.id === target.id || e.id === source.id) continue;
+      if (dist2(e.x, e.y, target.x, target.y) > radius2) continue;
+      const sourceThreat = source.isPlayer || power(source) >= power(e) * 0.85;
+      const isPredator = e.def.diet === "carnivore";
+      const isPrey = e.def.diet !== "carnivore";
+      if (isPredator && sourceThreat && (e.hunger > 0.25 || e.engagedUntil > this.time)) {
+        e.targetId = source.id;
+        e.engagedUntil = this.time + 4;
+        e.peaceful = false;
+      } else if (isPrey && sourceThreat && power(source) > power(e) * 1.15) {
+        e.state = "flee";
+        e.stateUntil = this.time + 2;
+        e.targetId = source.id;
+        e.engagedUntil = this.time + 4;
+      }
+    }
+  }
+
   private updateGrip(e: Ent, dt: number) {
     if (!e.gripId || this.time > e.gripUntil) {
       if (e.gripId && this.time > e.gripUntil) {
-        e.gripId = null;
-        e.gripMode = null;
+        this.clearGrip(e);
       }
       return;
     }
     const t = this.entById(e.gripId);
     if (!t || t.dead) {
-      e.gripId = null;
-      e.gripMode = null;
+      this.clearGrip(e);
       return;
     }
     if (dist2(e.x, e.y, t.x, t.y) > 160 * 160) {
-      e.gripId = null;
-      e.gripMode = null;
+      this.clearGrip(e);
       return;
     }
     const dps =
@@ -1158,6 +1185,7 @@ export class Game {
       target.coinsFarmed += dmg;
       if (gain > 0) this.addCoins(gain, target.x, target.y);
       this.targetId = target.id;
+      this.alertNearbyNpcs(target, source);
     }
     if (target.hp <= 0) this.kill(target, source.isPlayer);
   }
