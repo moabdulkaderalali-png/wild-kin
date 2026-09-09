@@ -315,6 +315,7 @@ export function generateProps(cx: number, cy: number): Prop[] {
         type = null;
     }
     if (!type) continue;
+    if (type === "rock" && Math.random() < 0.5) continue;
     const isTree = isCanopy(type);
     const r =
       type === "grassTuft" || type === "flower"
@@ -356,14 +357,14 @@ export const SPAWN_TABLE: Record<Biome, string[]> = {
   ocean: [],
   ice: ["penguin", "polarbear"],
   beach: ["frog", "rabbit"],
-  river: ["frog", "otter", "anaconda", "crocodile", "hippo", "titanoboa", "spinosaurus"],
-  lake: ["frog", "otter", "crocodile", "hippo", "titanoboa"],
-  swamp: ["frog", "snake", "otter", "anaconda", "crocodile", "hippo", "titanoboa", "spinosaurus"],
+  river: ["frog", "otter", "anaconda", "crocodile", "hippo", "titanoboa", "spinosaurus", "trex", "deinosuchus"],
+  lake: ["frog", "otter", "crocodile", "hippo", "titanoboa", "trex", "deinosuchus"],
+  swamp: ["frog", "snake", "otter", "anaconda", "crocodile", "hippo", "titanoboa", "spinosaurus", "trex", "deinosuchus"],
   desert: ["snake", "hyena", "camel"],
-  savanna: ["hyena", "cheetah", "zebra", "snake", "leopard", "goat", "elephant", "giraffe", "rhino"],
-  grass: ["mouse", "rabbit", "cat", "deer", "goat", "wolf", "cheetah", "giraffe", "rhino"],
-  forest: ["mouse", "rabbit", "hedgehog", "fox", "deer", "wolf", "cat", "leopard"],
-  jungle: ["leopard", "komodo", "snake", "frog", "anaconda", "crocodile", "elephant", "titanoboa", "spinosaurus"],
-  snow: ["wolf", "fox", "penguin", "polarbear"],
-  mountain: ["goat", "wolf"],
+  savanna: ["hyena", "cheetah", "zebra", "snake", "leopard", "goat", "elephant", "giraffe", "rhino", "trex"],
+  grass: ["mouse", "rabbit", "cat", "deer", "goat", "wolf", "cheetah", "giraffe", "rhino", "trex"],
+  forest: ["mouse", "rabbit", "hedgehog", "fox", "deer", "wolf", "cat", "leopard", "arctotherium"],
+  jungle: ["leopard", "komodo", "snake", "frog", "anaconda", "crocodile", "elephant", "titanoboa", "spinosaurus", "trex", "deinosuchus"],
+  snow: ["wolf", "fox", "penguin", "polarbear", "arctotherium"],
+  mountain: ["goat", "wolf", "arctotherium"],
 };
